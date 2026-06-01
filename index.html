@@ -1052,7 +1052,7 @@ const SHEET_IDS = {
   activityLog: "Activity Log",
 };
 function sheetUrl(tabName) {
-  return `https://docs.google.com/spreadsheets/d/${MASTER_SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(tabName)}`;
+  return `https://docs.google.com/spreadsheets/d/${MASTER_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
 }
 
 // ============================================================================
