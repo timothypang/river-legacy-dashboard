@@ -1275,9 +1275,25 @@ async function loadFromSheets() {
         np = netFromEB - num(o["Shipping Label ($)"]) - num(o["Refund ($)"]);
       } else if (o["Net Profit ($)"] != null && !isNaN(o["Net Profit ($)"])) {
         np = num(o["Net Profit ($)"]);
-      } else { np = 0; }
+      } else {
+        // Auto-estimate from sale price when fee data is missing
+        const gross = num(o["Item Subtotal ($)"]) + num(o["Buyer S&H ($)"]);
+        const fvfEst = Math.round(gross * 0.1325 * 100) / 100;
+        const netEst = Math.round((gross - fvfEst - 5.50) * 100) / 100;
+        np = gross > 0 ? netEst : 0;
+        // Fill in estimated fee columns so they display correctly
+        if (gross > 0) {
+          o["FVF Variable ($)"] = fvfEst;
+          o["Other Fees ($)"] = 0.40;
+          o["Total Fees ($)"] = Math.round((fvfEst + 0.40) * 100) / 100;
+          o["Net from eBay ($)"] = Math.round((gross - fvfEst) * 100) / 100;
+          o["Shipping Label ($)"] = 5.50;
+          o["Gross ($)"] = gross;
+          o["__estimated"] = true; // flag so we can show indicator
+        }
+      }
       o["Net Profit ($)"] = np;
-      o["Total Fees ($)"] = num(o["FVF Variable ($)"]) + num(o["Other Fees ($)"]);
+      if (!o["Total Fees ($)"]) o["Total Fees ($)"] = num(o["FVF Variable ($)"]) + num(o["Other Fees ($)"]);
       o["Gross ($)"] = num(o["Item Subtotal ($)"]) + num(o["Buyer S&H ($)"]);
       o["Margin %"] = (o["Gross ($)"] > 0) ? np / o["Gross ($)"] : 0;
       const allNull = o["Tim Share ($)"] == null && o["Vince Share ($)"] == null && o["Juan Share ($)"] == null;
