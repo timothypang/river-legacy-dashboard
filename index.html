@@ -1,0 +1,2220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>River Legacy — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+
+  :root {
+    /* Surfaces */
+    --bg:#0a0f1c;
+    --surface:#121826;
+    --surface-2:#1a2236;
+    --surface-3:#0d121f;
+    --card:#121826;
+    --light:#1a2236;
+    /* Borders */
+    --border:#252e44;
+    --border-soft:#1c243a;
+    /* Text */
+    --ink:#e6ecf5;
+    --ink-soft:#c5cee0;
+    --muted:#7e8aa8;
+    /* Brand */
+    --navy:#0f2a44;
+    --navy-2:#1a3a5e;
+    --gold:#f0b429;
+    --gold-soft:#fbd56b;
+    /* Status */
+    --green:#22c55e;
+    --red:#f87171;
+    --amber:#fbbf24;
+    /* Editable highlight */
+    --edit:rgba(240,180,41,0.08);
+    --edit-strong:rgba(240,180,41,0.18);
+    --edit-border:#f0b429;
+  }
+  * { box-sizing:border-box; }
+  html { color-scheme:dark; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  body::before {
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(240,180,41,0.07), transparent 70%),
+      radial-gradient(800px 500px at -10% 110%, rgba(26,58,94,0.45), transparent 70%);
+  }
+
+  header {
+    background:linear-gradient(135deg, #0a1424 0%, #0f2a44 50%, #1a3a5e 100%);
+    color:white; padding:18px 32px; display:flex;
+    justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+    position:relative; z-index:2;
+    border-bottom:1px solid var(--border);
+  }
+  header::after {
+    content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+    background:linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
+    opacity:0.55;
+  }
+  header h1 { margin:0; font-size:20px; font-weight:700; letter-spacing:0.2px; }
+  header .file-info { color:#9bb0c8; font-size:12px; margin-top:3px; }
+  .actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+  button {
+    background:var(--gold); color:#1a1408; border:none;
+    padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px;
+    transition:filter 0.15s ease, transform 0.05s ease, background 0.15s ease;
+  }
+  button.ghost { background:transparent; color:#dbe4f0; border:1px solid rgba(255,255,255,0.16); }
+  button.ghost:hover:not(:disabled) { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.32); filter:none; }
+  button.danger { background:#dc2626; color:white; }
+  button.success { background:#16a34a; color:white; }
+  button:hover:not(:disabled) { filter:brightness(1.08); }
+  button:active:not(:disabled) { transform:translateY(1px); }
+  button:disabled { opacity:0.35; cursor:not-allowed; }
+  .dirty-dot {
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:#1a1408; margin-right:5px; vertical-align:middle;
+    box-shadow:0 0 0 2px rgba(26,20,8,0.35);
+  }
+
+  nav.tabs {
+    background:var(--surface); padding:0 32px; border-bottom:1px solid var(--border);
+    display:flex; gap:0; position:relative; z-index:1;
+  }
+  nav.tabs button.tab {
+    background:transparent; border:none; padding:14px 18px;
+    color:var(--muted); cursor:pointer; font-size:14px; font-weight:600;
+    border-bottom:2px solid transparent; border-radius:0;
+    transition:color 0.15s ease, border-color 0.15s ease;
+  }
+  nav.tabs button.tab.active { color:var(--ink); border-bottom-color:var(--gold); }
+  nav.tabs button.tab:hover:not(.active) { color:var(--ink-soft); }
+
+  main { padding:24px 32px 80px; max-width:1500px; margin:0 auto; position:relative; z-index:1; }
+  .empty {
+    background:var(--surface); border:2px dashed var(--border); border-radius:12px;
+    padding:60px 40px; text-align:center; color:var(--muted);
+  }
+  .empty.drag { border-color:var(--gold); background:rgba(240,180,41,0.05); }
+  .empty h2 { color:var(--ink); margin:12px 0 6px; }
+  .empty p { margin:6px 0; font-size:14px; }
+  .empty .hint { font-size:12px; opacity:0.85; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+          gap:14px; margin-bottom:20px; }
+  .kpi {
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:14px 16px; transition:transform 0.15s ease, border-color 0.15s ease;
+    box-shadow:0 1px 0 rgba(255,255,255,0.02) inset;
+  }
+  .kpi:hover { transform:translateY(-1px); border-color:rgba(240,180,41,0.4); }
+  .kpi .label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px; font-weight:600; }
+  .kpi .value { font-size:24px; font-weight:700; margin-top:4px; color:var(--ink); }
+  .kpi .sub { font-size:11px; color:var(--muted); margin-top:3px; }
+  .kpi.green .value { color:var(--green); }
+  .kpi.red .value { color:var(--red); }
+  .kpi.amber .value { color:var(--amber); }
+
+  section.panel {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:18px 20px; margin-bottom:20px;
+  }
+  section.panel h3 {
+    margin:0 0 14px; font-size:11px; text-transform:uppercase;
+    letter-spacing:1.4px; color:var(--gold); font-weight:700;
+  }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:920px) { .grid-2 { grid-template-columns:1fr; } }
+
+  .filters { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; }
+  .filters input, .filters select {
+    padding:7px 10px; border:1px solid var(--border); border-radius:6px;
+    font-size:13px; background:var(--surface-2); color:var(--ink);
+    transition:border-color 0.15s ease;
+  }
+  .filters input::placeholder { color:var(--muted); }
+  .filters input:focus, .filters select:focus { border-color:var(--gold); outline:none; }
+  .filters input { min-width:240px; }
+  .filters .count { color:var(--muted); font-size:12px; margin-left:8px; }
+
+  .scroll {
+    max-height:60vh; overflow:auto; border:1px solid var(--border); border-radius:8px;
+    background:var(--surface);
+  }
+  .scroll::-webkit-scrollbar { width:10px; height:10px; }
+  .scroll::-webkit-scrollbar-track { background:var(--surface); }
+  .scroll::-webkit-scrollbar-thumb {
+    background:#2a3349; border-radius:5px; border:2px solid var(--surface);
+  }
+  .scroll::-webkit-scrollbar-thumb:hover { background:#3a4665; }
+
+  table { width:100%; border-collapse:collapse; font-size:12.5px; color:var(--ink); }
+  th, td { padding:7px 10px; text-align:left; border-bottom:1px solid var(--border-soft); vertical-align:middle; white-space:nowrap; }
+  tbody tr { transition:background 0.1s ease; }
+  tbody tr:hover td { background:rgba(255,255,255,0.025); }
+  th {
+    background:var(--surface-3); position:sticky; top:0; z-index:1; font-size:11px;
+    text-transform:uppercase; letter-spacing:0.4px; color:var(--muted); font-weight:600;
+    border-bottom:1px solid var(--border);
+  }
+  th.editable {
+    background:linear-gradient(180deg, rgba(240,180,41,0.12), rgba(240,180,41,0.06));
+    color:var(--gold-soft);
+  }
+  th.sortable {
+    cursor:pointer; user-select:none; padding-right:22px; position:relative;
+    transition:background 0.15s ease, color 0.15s ease;
+  }
+  th.sortable:hover { background:#1f2942; color:var(--ink); }
+  th.editable.sortable:hover { background:rgba(240,180,41,0.18); color:var(--gold); }
+  th.sortable::after {
+    content:"↕"; position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    font-size:9px; color:var(--muted); opacity:0.55;
+  }
+  th.sort-asc::after  { content:"▲"; color:var(--gold); opacity:1; }
+  th.sort-desc::after { content:"▼"; color:var(--gold); opacity:1; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* Column resize handles */
+  th.resizable { position:relative; }
+  th.resizable .col-resize-handle {
+    position:absolute; right:0; top:0; bottom:0; width:5px;
+    cursor:col-resize; z-index:2; user-select:none;
+    background:transparent;
+    transition:background 0.15s ease;
+  }
+  th.resizable .col-resize-handle:hover,
+  th.resizable .col-resize-handle.dragging {
+    background:var(--gold);
+    opacity:0.7;
+  }
+  td.editable { background:var(--edit); padding:2px 4px; }
+  td.editable input, td.editable select {
+    border:1px solid transparent; background:transparent; padding:5px 6px;
+    width:100%; font-size:12.5px; font-family:inherit; outline:none; border-radius:3px;
+    color:var(--ink);
+  }
+  td.editable input:focus, td.editable select:focus {
+    border-color:var(--edit-border); background:var(--surface-2);
+  }
+  td.editable select option { background:var(--surface-2); color:var(--ink); }
+  td.editable input[type="number"] { text-align:right; font-variant-numeric:tabular-nums; }
+  td.editable.dirty { background:var(--edit-strong); }
+  td.editable.dirty input, td.editable.dirty select { font-weight:600; color:var(--gold-soft); }
+  td.pos { color:var(--green); font-weight:600; }
+  td.neg { color:var(--red); font-weight:600; }
+  td.gain-cell { font-weight:600; white-space:nowrap; }
+  td.gain-cell.pos { color:var(--green); }
+  td.gain-cell.neg { color:var(--red); }
+  td.gain-cell span.gain-pct { font-size:11px; opacity:0.8; margin-left:5px; }
+
+  /* For Sale toggle */
+  .forsale-toggle {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;
+    cursor:pointer; border:1px solid var(--border); background:var(--surface-3);
+    color:var(--muted); transition:all 0.15s ease; white-space:nowrap; user-select:none;
+    letter-spacing:0.2px;
+  }
+  .forsale-toggle:hover { border-color:var(--green); color:var(--green); }
+  .forsale-toggle.active { background:rgba(34,197,94,0.12); border-color:var(--green); color:var(--green); }
+  .forsale-toggle.grading { background:rgba(251,191,36,0.12); border-color:var(--amber); color:var(--amber); }
+  .forsale-toggle.grading:hover { border-color:var(--amber); color:var(--amber); }
+  .forsale-toggle .dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  td.forsale-cell { white-space:nowrap; }
+  .badge {
+    display:inline-block; padding:2px 9px; border-radius:999px;
+    font-size:11px; font-weight:600; border:1px solid transparent;
+  }
+  .badge.tim   { background:rgba(96,165,250,0.14);  color:#93c5fd; border-color:rgba(96,165,250,0.32); }
+  .badge.vince { background:rgba(251,146,60,0.14);  color:#fdba74; border-color:rgba(251,146,60,0.32); }
+  .badge.river { background:rgba(74,222,128,0.14);  color:#86efac; border-color:rgba(74,222,128,0.32); }
+  .badge.juan  { background:rgba(192,132,252,0.14); color:#d8b4fe; border-color:rgba(192,132,252,0.32); }
+
+  /* Owner filter toggle buttons */
+  .owner-filter-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 13px; border-radius:999px; font-size:12px; font-weight:600;
+    cursor:pointer; border:1px solid; background:transparent;
+    transition:all 0.15s ease; letter-spacing:0.2px; font-family:inherit;
+    opacity:0.55;
+  }
+  .owner-filter-btn .dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .owner-filter-btn:hover { opacity:0.85; }
+  .owner-filter-btn.active { opacity:1; }
+
+  .owner-filter-btn.tim   { color:#93c5fd; border-color:rgba(96,165,250,0.32); }
+  .owner-filter-btn.vince { color:#fdba74; border-color:rgba(251,146,60,0.32); }
+  .owner-filter-btn.river { color:#86efac; border-color:rgba(74,222,128,0.32); }
+  .owner-filter-btn.juan  { color:#d8b4fe; border-color:rgba(192,132,252,0.32); }
+
+  .owner-filter-btn.tim.active   { background:rgba(96,165,250,0.14); }
+  .owner-filter-btn.vince.active { background:rgba(251,146,60,0.14); }
+  .owner-filter-btn.river.active { background:rgba(74,222,128,0.14); }
+  .owner-filter-btn.juan.active  { background:rgba(192,132,252,0.14); }
+
+  /* Expandable detail row (Orders tab) */
+  th.expand-th, td.expand-cell { width:32px; padding:6px 4px 6px 10px; }
+  td.expand-cell {
+    cursor:pointer; user-select:none; color:var(--muted);
+    transition:color 0.15s ease;
+  }
+  td.expand-cell:hover { color:var(--gold); }
+  td.expand-cell .arrow {
+    display:inline-block; transition:transform 0.18s ease;
+    font-size:10px; line-height:1;
+  }
+  tbody tr.expanded td.expand-cell { color:var(--gold); }
+  tbody tr.expanded td.expand-cell .arrow { transform:rotate(90deg); }
+  tbody tr.detail-row { display:none; }
+  tbody tr.detail-row.show { display:table-row; }
+  tbody tr.detail-row td {
+    background:var(--surface-3);
+    padding:14px 18px 16px 46px;
+    border-bottom:1px solid var(--border);
+  }
+  tbody tr.detail-row:hover td { background:var(--surface-3); }
+  .detail-grid {
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:8px 28px;
+  }
+  .detail-item { display:flex; gap:10px; font-size:12px; align-items:baseline; }
+  .detail-item .lbl {
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.4px;
+    font-size:10.5px; min-width:120px; font-weight:600;
+  }
+  .detail-item .val { color:var(--ink); font-variant-numeric:tabular-nums; }
+  .detail-item .val.pos { color:var(--green); font-weight:600; }
+  .detail-item .val.neg { color:var(--red); font-weight:600; }
+  .detail-item .val.muted { color:var(--muted); }
+  .detail-item .val.mono { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:11.5px; }
+
+  /* Item Title — let every character show */
+  td.col-title {
+    white-space:normal; word-break:break-word;
+    min-width:280px; max-width:420px; line-height:1.4;
+  }
+
+  .chart-wrap { position:relative; height:260px; }
+
+  .toast {
+    position:fixed; bottom:20px; right:20px;
+    background:var(--surface-2); color:var(--ink);
+    border:1px solid var(--border);
+    padding:12px 18px; border-radius:8px; font-size:13px;
+    box-shadow:0 12px 32px rgba(0,0,0,0.55);
+    transform:translateY(80px); opacity:0; transition:all 0.25s ease; z-index:1000;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { background:#0e2a1c; border-color:#22c55e; color:#86efac; }
+  .toast.error   { background:#2a0e0e; border-color:#ef4444; color:#fca5a5; }
+
+  /* Inventory editable detail dropdowns */
+  .inv-detail-row td { background:var(--surface-3); padding:10px 14px 12px 46px; border-bottom:1px solid var(--border); }
+  .inv-detail-row:hover td { background:var(--surface-3) !important; }
+  .inv-detail-row .detail-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px 24px; }
+  .inv-detail-row .detail-item { display:flex; gap:10px; font-size:12px; align-items:center; }
+  .inv-detail-row .detail-item .lbl { color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; font-size:10.5px; min-width:90px; font-weight:600; }
+  .inv-detail-row .detail-item select {
+    padding:4px 7px; border:1px solid var(--border); border-radius:5px;
+    font-size:12px; background:var(--surface-2); color:var(--ink);
+    transition:border-color 0.15s ease; flex:1;
+  }
+  .inv-detail-row .detail-item select:focus { border-color:var(--gold); outline:none; }
+  .inv-detail-row .detail-item select option { background:var(--surface-2); color:var(--ink); }
+  .inv-detail-row .detail-item select.dirty { border-color:var(--gold); background:rgba(240,180,41,0.08); font-weight:600; }
+
+  /* ── Add Entry Panel ─────────────────────────────────────── */
+  .modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65);
+    z-index:100; backdrop-filter:blur(4px); align-items:center; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    width:min(760px, 94vw); max-height:88vh; overflow-y:auto; padding:28px 28px 24px;
+    position:relative; box-shadow:0 24px 64px rgba(0,0,0,0.6);
+    animation:slideUp 0.22s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  .modal h2 { margin:0 0 20px; font-size:16px; font-weight:700; color:var(--ink); }
+  .modal-close {
+    position:absolute; top:16px; right:18px;
+    background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px 8px; border-radius:5px;
+    line-height:1; transition:color 0.15s, background 0.15s;
+  }
+  .modal-close:hover { color:var(--ink); background:rgba(255,255,255,0.07); }
+
+  .entry-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:22px; }
+  .entry-tab {
+    background:none; border:none; padding:10px 18px; font-size:13px; font-weight:600;
+    color:var(--muted); cursor:pointer; border-bottom:2px solid transparent;
+    transition:color 0.15s, border-color 0.15s; border-radius:0;
+  }
+  .entry-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .entry-pane { display:none; } .entry-pane.active { display:block; }
+
+  /* Drag-drop zone */
+  .drop-zone {
+    border:2px dashed var(--border); border-radius:10px;
+    padding:40px 24px; text-align:center; cursor:pointer;
+    transition:border-color 0.2s, background 0.2s; color:var(--muted);
+    background:var(--surface-3); position:relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color:var(--gold); background:rgba(240,180,41,0.06); color:var(--ink-soft); }
+  .drop-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .drop-zone .drop-icon { font-size:36px; margin-bottom:10px; }
+  .drop-zone p { margin:4px 0; font-size:13px; }
+  .drop-zone .hint { font-size:11px; opacity:0.65; margin-top:6px; }
+
+  .screenshot-preview {
+    display:none; margin-top:16px; gap:12px; flex-wrap:wrap;
+  }
+  .screenshot-preview.show { display:flex; }
+  .screenshot-thumb {
+    position:relative; border-radius:8px; overflow:hidden;
+    border:1px solid var(--border); width:140px; height:100px; flex-shrink:0;
+  }
+  .screenshot-thumb img { width:100%; height:100%; object-fit:cover; }
+  .screenshot-thumb .rm { position:absolute; top:4px; right:4px;
+    background:rgba(0,0,0,0.7); border:none; color:white; border-radius:50%;
+    width:20px; height:20px; font-size:12px; line-height:20px; text-align:center;
+    cursor:pointer; padding:0; }
+  .screenshot-thumb .rm:hover { background:#dc2626; }
+
+  .parse-status {
+    margin-top:12px; font-size:12.5px; min-height:18px;
+    display:flex; align-items:center; gap:8px; color:var(--muted);
+  }
+  .parse-status .spinner {
+    width:14px; height:14px; border:2px solid var(--border);
+    border-top-color:var(--gold); border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .parsed-results { margin-top:16px; display:none; }
+  .parsed-results.show { display:block; }
+  .parsed-card {
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; margin-bottom:10px; font-size:12.5px;
+  }
+  .parsed-card .parsed-title { font-weight:700; color:var(--gold); margin-bottom:8px; font-size:13px; }
+  .parsed-card .parsed-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:6px 16px; }
+  .parsed-card .pf { display:flex; flex-direction:column; gap:2px; }
+  .parsed-card .pf .lbl { font-size:10px; text-transform:uppercase; letter-spacing:0.4px; color:var(--muted); font-weight:600; }
+  .parsed-card .pf input, .parsed-card .pf select {
+    padding:5px 8px; border:1px solid var(--border); border-radius:5px;
+    font-size:12px; background:var(--surface-3); color:var(--ink); outline:none;
+    transition:border-color 0.15s;
+  }
+  .parsed-card .pf input:focus, .parsed-card .pf select:focus { border-color:var(--gold); }
+  .parsed-card .pf input.childhood-active { border-color:var(--amber); background:rgba(251,191,36,0.08); color:var(--amber); font-weight:600; }
+
+  /* Manual form */
+  .manual-form { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px 16px; }
+  .manual-form .field { display:flex; flex-direction:column; gap:4px; }
+  .manual-form .field label { font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px; color:var(--muted); font-weight:600; }
+  .manual-form .field input, .manual-form .field select {
+    padding:7px 10px; border:1px solid var(--border); border-radius:6px;
+    font-size:13px; background:var(--surface-2); color:var(--ink); outline:none;
+    transition:border-color 0.15s;
+  }
+  .manual-form .field input:focus, .manual-form .field select:focus { border-color:var(--gold); }
+  .manual-form .field input.childhood-active { border-color:var(--amber); background:rgba(251,191,36,0.08); color:var(--amber); font-weight:600; }
+  .childhood-toggle {
+    font-size:11px; color:var(--amber); cursor:pointer; text-decoration:underline;
+    text-underline-offset:2px; background:none; border:none; padding:0; margin-top:2px;
+    font-family:inherit; font-weight:600; text-align:left;
+  }
+  .childhood-toggle.active { color:var(--amber); }
+  .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:22px; padding-top:16px; border-top:1px solid var(--border); }
+
+  /* Add Entry button in filters bar */
+  /* ── End Add Entry Panel ─────────────────────────────────── */
+  .info-bar {
+    background:linear-gradient(180deg, rgba(240,180,41,0.10), rgba(240,180,41,0.04));
+    border:1px solid rgba(240,180,41,0.32);
+    padding:10px 14px; border-radius:8px; font-size:12.5px;
+    color:#e6cf94; margin-bottom:14px;
+  }
+  .info-bar strong { color:var(--gold); }
+
+  /* Payout & RL Funds panels */
+  .payout-person { margin-bottom:18px; }
+  .payout-person:last-child { margin-bottom:0; }
+  .payout-person-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border);
+  }
+  .payout-person-header .total {
+    font-size:15px; font-weight:700; color:var(--red);
+  }
+  .payout-line-items { display:flex; flex-direction:column; gap:4px; }
+  .payout-line {
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:12px; padding:3px 0; border-bottom:1px solid var(--border-soft);
+    gap:12px;
+  }
+  .payout-line:last-child { border-bottom:none; }
+  .payout-line .item-name {
+    color:var(--ink-soft); flex:1; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;
+  }
+  .payout-line .item-amt { color:var(--red); font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .payout-empty { color:var(--muted); font-size:13px; font-style:italic; }
+  .rl-funds-total {
+    font-size:28px; font-weight:700; color:var(--green);
+    margin:8px 0 4px;
+  }
+  .rl-funds-sub { font-size:12px; color:var(--muted); margin-bottom:16px; }
+  .rl-funds-breakdown { display:flex; flex-direction:column; gap:6px; }
+  .rl-funds-row {
+    display:flex; justify-content:space-between;
+    font-size:12.5px; padding:4px 0; border-bottom:1px solid var(--border-soft);
+  }
+  .rl-funds-row:last-child { border-bottom:none; }
+  .rl-funds-row .lbl { color:var(--ink-soft); }
+  .rl-funds-row .val { font-weight:600; color:var(--green); font-variant-numeric:tabular-nums; }
+
+
+
+
+  /* ── Budget Card Line Items ─────────────────────────────────────────── */
+  .tbc-section-header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 0 4px; border-bottom:1px solid var(--border-soft);
+    cursor:pointer; user-select:none;
+  }
+  .tbc-section-header .lbl { color:var(--muted); font-size:12.5px; }
+  .tbc-section-header .val { font-weight:600; font-variant-numeric:tabular-nums; }
+  .tbc-section-header .chevron { font-size:9px; color:var(--muted); margin-left:6px; transition:transform 0.18s; }
+  .tbc-section-header.open .chevron { transform:rotate(90deg); }
+  .tbc-line-items { overflow:hidden; }
+  .tbc-line-item {
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:4px 8px 4px 14px; font-size:11.5px; gap:10px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .tbc-line-item:last-child { border-bottom:none; }
+  .tbc-line-item .li-name { color:var(--ink-soft); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tbc-line-item .li-date { color:var(--muted); font-size:10.5px; white-space:nowrap; flex-shrink:0; }
+  .tbc-line-item .li-amt  { font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0; }
+  /* ── Tim Budget Card ───────────────────────────────────────────────── */
+  .tim-budget-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:18px 20px; margin-bottom:20px; position:relative; overflow:hidden;
+  }
+  .tim-budget-card::before {
+    content:""; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, #60a5fa, #93c5fd);
+  }
+  .tim-budget-card h3 {
+    margin:0 0 14px; font-size:11px; text-transform:uppercase;
+    letter-spacing:1.4px; color:#93c5fd; font-weight:700;
+  }
+  .tbc-rows { display:flex; flex-direction:column; gap:0; }
+  .tbc-row {
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:7px 0; border-bottom:1px solid var(--border-soft); font-size:13px;
+  }
+  .tbc-row:last-of-type { border-bottom:none; }
+  .tbc-row .lbl { color:var(--muted); }
+  .tbc-row .val { font-weight:600; font-variant-numeric:tabular-nums; }
+  .tbc-row .val.green { color:var(--green); }
+  .tbc-row .val.amber { color:var(--amber); }
+  .tbc-total {
+    margin-top:12px; padding-top:12px; border-top:2px solid var(--border);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .tbc-total .lbl { font-size:13px; font-weight:700; color:var(--ink); }
+  .tbc-total .val { font-size:24px; font-weight:700; color:#60a5fa; }
+  .tbc-total .val.red { color:var(--red); }
+  .tbc-since { font-size:11px; color:var(--muted); margin-bottom:12px; }
+  /* ── End Tim Budget Card ───────────────────────────────────────────── */
+
+  .footer { margin-top:48px; color:var(--muted); font-size:12px; text-align:center; }
+  .hidden { display:none !important; }
+
+  /* ── eBay Sync Modal ───────────────────────────────────────── */
+  .ebay-sync-drop {
+    border:2px dashed var(--border); border-radius:10px;
+    padding:36px 24px; text-align:center; cursor:pointer;
+    transition:border-color 0.2s, background 0.2s; color:var(--muted);
+    background:var(--surface-3); position:relative; margin-bottom:16px;
+  }
+  .ebay-sync-drop:hover, .ebay-sync-drop.drag-over {
+    border-color:var(--gold); background:rgba(240,180,41,0.06); color:var(--ink-soft);
+  }
+  .ebay-sync-drop input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .ebay-sync-drop .drop-icon { font-size:32px; margin-bottom:8px; }
+  .ebay-sync-drop p { margin:4px 0; font-size:13px; }
+  .ebay-sync-drop .hint { font-size:11px; opacity:0.65; margin-top:4px; }
+
+  .sync-match-list { display:flex; flex-direction:column; gap:10px; max-height:52vh; overflow-y:auto; padding-right:4px; }
+  .sync-match-card {
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; font-size:12.5px; transition:opacity 0.2s;
+  }
+  .sync-match-card.skipped { opacity:0.42; }
+  .sync-match-card .smh {
+    display:flex; align-items:flex-start; gap:10px; justify-content:space-between; flex-wrap:wrap;
+    margin-bottom:8px;
+  }
+  .sync-match-card .smh .sold-title { font-weight:700; color:var(--ink); font-size:13px; flex:1; min-width:0; }
+  .sync-match-card .smh .sold-price { color:var(--green); font-weight:700; white-space:nowrap; font-size:13px; }
+  .sync-match-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; margin-bottom:10px; }
+  .sync-match-side {
+    background:var(--surface-3); border-radius:6px; padding:8px 10px; border:1px solid var(--border-soft);
+  }
+  .sync-match-side .side-label {
+    font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); font-weight:700; margin-bottom:5px;
+  }
+  .sync-match-side .side-name { font-weight:600; color:var(--ink); font-size:12.5px; margin-bottom:2px; }
+  .sync-match-side .side-meta { font-size:11px; color:var(--muted); }
+  .sync-match-side .side-cost { font-size:11.5px; color:var(--amber); font-weight:600; margin-top:3px; }
+  .sync-match-side .no-match { color:var(--muted); font-style:italic; font-size:12px; }
+  .sync-match-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .sync-match-actions .match-sel {
+    flex:1; min-width:160px; padding:5px 8px; border:1px solid var(--border); border-radius:5px;
+    font-size:12px; background:var(--surface-3); color:var(--ink); outline:none; transition:border-color 0.15s;
+  }
+  .sync-match-actions .match-sel:focus { border-color:var(--gold); }
+  .sync-skip-btn {
+    background:none; border:1px solid var(--border); color:var(--muted);
+    padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; cursor:pointer;
+    transition:all 0.15s;
+  }
+  .sync-skip-btn:hover { border-color:var(--red); color:var(--red); }
+  .sync-skip-btn.skipped-btn { border-color:var(--red); color:var(--red); background:rgba(248,113,113,0.08); }
+  .sync-confidence {
+    display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; margin-left:6px; vertical-align:middle;
+  }
+  .sync-confidence.high   { background:rgba(34,197,94,0.15);  color:var(--green); }
+  .sync-confidence.medium { background:rgba(251,191,36,0.15); color:var(--amber); }
+  .sync-confidence.low    { background:rgba(248,113,113,0.15);color:var(--red);   }
+  .sync-confidence.none   { background:rgba(126,138,168,0.15);color:var(--muted); }
+  .sync-summary-bar {
+    background:var(--surface-3); border:1px solid var(--border); border-radius:7px;
+    padding:10px 14px; font-size:12.5px; margin-bottom:14px;
+    display:flex; gap:20px; flex-wrap:wrap; align-items:center;
+  }
+  .sync-summary-bar .ss-item { display:flex; flex-direction:column; gap:1px; }
+  .sync-summary-bar .ss-label { font-size:10px; text-transform:uppercase; letter-spacing:0.4px; color:var(--muted); font-weight:600; }
+  .sync-summary-bar .ss-val { font-weight:700; color:var(--ink); font-size:14px; }
+  .sync-summary-bar .ss-val.green { color:var(--green); }
+  .sync-summary-bar .ss-val.amber { color:var(--amber); }
+  /* ── End eBay Sync Modal ───────────────────────────────────── */
+
+
+
+  #loadingBar { display:none; height:3px; background:linear-gradient(90deg,var(--gold),var(--gold-soft),var(--gold)); background-size:200% 100%; animation:shimmer 1.2s infinite linear; position:fixed; top:0; left:0; right:0; z-index:999; }
+  @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
+  .import-drop { border:2px dashed var(--border); border-radius:10px; padding:36px 24px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; color:var(--muted); background:var(--surface-3); position:relative; margin-bottom:16px; }
+  .import-drop:hover,.import-drop.drag-over { border-color:var(--gold); background:rgba(240,180,41,0.06); color:var(--ink-soft); }
+  .import-drop input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .import-config-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px; padding:10px 14px; background:var(--surface-3); border-radius:8px; border:1px solid var(--border); font-size:12px; }
+  .import-config-bar .cfg-field { display:flex; flex-direction:column; gap:4px; }
+  .import-config-bar .cfg-field label { font-size:10px; text-transform:uppercase; letter-spacing:0.4px; color:var(--muted); font-weight:600; }
+  .import-config-bar .cfg-field input, .import-config-bar .cfg-field select { padding:5px 8px; border:1px solid var(--border); border-radius:5px; font-size:12px; background:var(--surface-2); color:var(--ink); outline:none; width:130px; }
+  .import-summary-bar { display:flex; gap:20px; flex-wrap:wrap; align-items:center; padding:10px 14px; background:var(--surface-3); border:1px solid var(--border); border-radius:7px; font-size:12.5px; margin-bottom:14px; }
+  .import-order-list { display:flex; flex-direction:column; gap:10px; max-height:52vh; overflow-y:auto; }
+
+</style>
+</head>
+<body>
+<div id="loadingBar"></div>
+
+<header>
+  <div>
+    <h1>River Legacy — Dashboard</h1>
+    <div class="file-info" id="fileInfo">Connecting to Google Sheets…</div>
+  </div>
+  <div class="actions">
+    <button id="refreshBtn" class="ghost">↻ Refresh</button>
+    <button id="pushInvBtn" class="ghost" disabled>Push Inventory → Sheets</button>
+    <button id="pushOrdersBtn" class="ghost" disabled>Push Orders → Sheets</button>
+    <button id="importOrdersBtn" class="ghost" disabled>📥 Import eBay CSV</button>
+  </div>
+</header>
+
+<nav class="tabs hidden" id="tabs">
+  <button class="tab active" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="inventory">Inventory</button>
+  <button class="tab" data-tab="orders">Orders</button>
+</nav>
+
+<main>
+  <div id="emptyState" class="empty">
+    <h2>Connecting to Google Sheets…</h2>
+    <p>Loading your River Legacy data.</p>
+    <p class="hint">If this takes more than a few seconds, each Google Sheet must be shared as "Anyone with the link can view."</p>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="tabOverview" class="hidden">
+    <div class="grid-2">
+      <section class="tim-budget-card" id="timBudgetCard">
+        <h3>🃏 Tim — Buying Budget (Feb 2026+)</h3>
+        <div class="tbc-since">Sales revenue vs. inventory purchases since Feb 2026</div>
+        <div class="tbc-rows" id="timBudgetRows"></div>
+        <div class="tbc-total"><span class="lbl">💰 Spendable Budget</span><span class="val" id="timBudgetTotal">—</span></div>
+      </section>
+      <section class="tim-budget-card" id="rlBudgetCard">
+        <h3 style="color:#86efac;">🏦 River Legacy — Buying Budget (Feb 2026+)</h3>
+        <div class="tbc-since">RL revenue share vs. all inventory cost since Feb 2026</div>
+        <div class="tbc-rows" id="rlBudgetRows"></div>
+        <div class="tbc-total"><span class="lbl">💰 Spendable Budget</span><span class="val" id="rlBudgetTotal" style="color:#22c55e">—</span></div>
+      </section>
+    </div>
+    <div class="grid-2">
+      <section class="panel" id="payoutPanel">
+        <h3>💸 Money to be paid out</h3>
+        <div id="payoutContent"></div>
+      </section>
+      <section class="panel" id="rlFundsPanel">
+        <h3>📊 Owner breakdown</h3>
+        <div id="ownerTableWrap">
+          <table>
+            <thead><tr><th>Owner</th><th class="num">Orders</th><th class="num">Net Revenue</th><th class="num">Inv. Items</th><th class="num">Market Value</th><th class="num">Net Gain</th></tr></thead>
+            <tbody id="ownerTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- INVENTORY TAB -->
+  <div id="tabInventory" class="hidden">
+    <div class="filters">
+      <input id="invSearch" placeholder="Search SKU, name, set, owner…">
+      <button class="owner-filter-btn tim" data-owner="Tim" id="invFilterTim"><span class="dot"></span>Tim</button>
+      <button class="owner-filter-btn vince" data-owner="Vince" id="invFilterVince"><span class="dot"></span>Vince</button>
+      <button class="owner-filter-btn river" data-owner="River Legacy" id="invFilterRiver"><span class="dot"></span>River Legacy</button>
+      <button class="owner-filter-btn juan" data-owner="Juan" id="invFilterJuan"><span class="dot"></span>Juan</button>
+      <span class="count" id="invCount"></span>
+      <button id="pushInvBtn" class="ghost" disabled style="margin-left:auto">Push → Sheets</button>
+      <button id="addEntryBtn" class="ghost">➕ Add Entry</button>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr id="invHead"><th class="expand-th"></th></tr></thead>
+        <tbody id="invBody"></tbody>
+      </table>
+    </div>
+    <div class="info-bar" style="margin-top:14px;margin-bottom:0;line-height:1.9">
+      <strong>Editable columns:</strong> Cost ($), Market ($), Date Acquired, Condition, Grade (highlighted yellow).<br>
+      Click <strong>▶</strong> to expand a row and edit Set/Product, Card #/ID, Language, Variant, and Rarity.<br>
+      Click <strong>Push → Sheets</strong> to copy changes as TSV — paste into A1 in your Google Sheet to save.
+    </div>
+  </div>
+
+  <!-- ORDERS TAB -->
+  <div id="tabOrders" class="hidden">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+      <h3 style="margin:0;font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--gold);font-weight:700;">🃏 Pokémon Card Orders</h3>
+      <div class="filters" style="margin:0;flex:1;">
+        <input id="orderSearch" placeholder="Search title, buyer, tracking…">
+        <select id="orderOwnerFilter"><option value="">All owners</option></select>
+        <select id="orderStatusFilter"><option value="">All statuses</option></select>
+        <span class="count" id="orderCount"></span>
+        <button id="pushOrdersBtn" class="ghost" disabled style="margin-left:auto">Push → Sheets</button>
+        <button id="importOrdersBtn" class="ghost" disabled>📥 Import eBay CSV</button>
+      </div>
+    </div>
+    <div class="scroll" style="margin-bottom:6px;">
+      <table>
+        <thead><tr id="orderHead"></tr></thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+    </div>
+    <div class="info-bar" style="margin-bottom:24px;line-height:1.9">
+      <strong>Editable columns:</strong> Owner, Cost ($), Paid Out (highlighted yellow).<br>
+      <strong>River Legacy →</strong> Tim 50% / Vince 50% &nbsp;|&nbsp; <strong>Juan →</strong> Juan 88%, River Legacy 12%<br>
+      After editing, click <strong>Push → Sheets</strong> and paste into your Google Sheet.
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+      <h3 style="margin:0;font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);font-weight:700;">📦 Other Orders</h3>
+      <div class="filters" style="margin:0;flex:1;">
+        <input id="otherOrderSearch" type="text" placeholder="Search items, owner…" style="min-width:200px;">
+        <span class="count" id="otherOrderCount"></span>
+      </div>
+    </div>
+    <div class="scroll" style="margin-bottom:6px;">
+      <table id="otherOrdersTable">
+        <thead><tr id="otherOrdersHead"></tr></thead>
+        <tbody id="otherOrdersBody"></tbody>
+        <tfoot id="otherOrdersFoot"></tfoot>
+      </table>
+    </div>
+    <div id="otherOrdersEmpty" style="display:none;text-align:center;padding:32px 24px;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:8px;margin-bottom:8px;">No other orders yet.</div>
+  </div>
+
+  <div class="footer">River Legacy Card Store · v6 · Live from Google Sheets</div>
+
+<!-- ===== ADD ENTRY MODAL ===== -->
+<div id="addEntryModal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" id="addEntryClose">✕</button>
+    <h2>➕ Add Inventory Entry</h2>
+
+    <div class="entry-tabs">
+      <button class="entry-tab active" data-pane="screenshot">📸 Screenshot Upload</button>
+      <button class="entry-tab" data-pane="manual">✏️ Manual Entry</button>
+    </div>
+
+    <!-- Screenshot pane -->
+    <div class="entry-pane active" id="paneScreenshot">
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Mode:</span>
+        <button class="ghost ss-mode-btn active" data-mode="add" style="font-size:12px;padding:5px 12px;">➕ Add New Entries</button>
+        <button class="ghost ss-mode-btn" data-mode="update" style="font-size:12px;padding:5px 12px;">✏️ Update Existing</button>
+      </div>
+      <div style="margin-bottom:14px;padding:10px 14px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:16px;flex-shrink:0;">⚠️</span>
+        <div style="font-size:12px;color:var(--ink-soft);line-height:1.5;">
+          <strong style="color:var(--amber);">Screenshot parsing requires Cowork.</strong>
+          Opening this file directly in Chrome won't work — the browser blocks the AI API call from local files.
+          Use <strong>Cowork</strong> to serve the dashboard, or switch to <strong>✏️ Manual Entry</strong> below.
+        </div>
+      </div>
+      <div id="ssUpdateHint" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:8px;font-size:12px;color:var(--ink-soft);">
+        AI will try to match the card in the screenshot to an existing inventory item and update its fields (Cost, Market, Condition, Grade, etc.). Review matches before confirming.
+      </div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="screenshotInput" accept="image/*,.pdf,application/pdf" multiple>
+        <div class="drop-icon">📷</div>
+        <p><strong>Drop screenshots or PDFs here</strong> or click to browse</p>
+        <p class="hint">PNG, JPG, WEBP, PDF — upload one or multiple card images or PDF exports</p>
+      </div>
+      <div class="screenshot-preview" id="screenshotPreview"></div>
+      <div class="parse-status" id="parseStatus"></div>
+      <div class="parsed-results" id="parsedResults"></div>
+      <div class="modal-footer" id="screenshotFooter" style="display:none">
+        <button class="ghost" id="clearScreenshots">Clear all</button>
+        <button id="addParsedBtn">Add to Inventory</button>
+      </div>
+    </div>
+
+    <!-- Manual entry pane -->
+    <div class="entry-pane" id="paneManual">
+      <div class="manual-form" id="manualForm">
+        <div class="field">
+          <label>Card Name *</label>
+          <input type="text" id="mf_CardName" placeholder="e.g. Charizard">
+        </div>
+        <div class="field">
+          <label>Type (Game)</label>
+          <select id="mf_Game">
+            <option value="">—</option>
+            <option>Pokémon</option><option>MTG</option><option>One Piece</option>
+            <option>Yu-Gi-Oh!</option><option>Lorcana</option><option>Sports Card</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>SET (Set / Product)</label>
+          <input type="text" id="mf_Set" placeholder="e.g. Base Set">
+        </div>
+        <div class="field">
+          <label>Cost ($)</label>
+          <input type="number" id="mf_Cost" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Market ($)</label>
+          <input type="number" id="mf_Market" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Condition</label>
+          <select id="mf_Condition">
+            <option value="">—</option>
+            <option>Mint</option><option>Near Mint</option><option>Lightly Played</option>
+            <option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Grade</label>
+          <input type="text" id="mf_Grade" placeholder="e.g. PSA 10">
+        </div>
+        <div class="field">
+          <label>Card # / ID</label>
+          <input type="text" id="mf_CardID" placeholder="e.g. 4/102">
+        </div>
+        <div class="field">
+          <label>Language</label>
+          <select id="mf_Language">
+            <option value="">—</option>
+            <option>EN</option><option>JP</option><option>KR</option><option>DE</option>
+            <option>FR</option><option>ES</option><option>IT</option><option>PT</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Variant</label>
+          <select id="mf_Variant">
+            <option value="">—</option>
+            <option>Normal</option><option>Holofoil</option><option>Reverse Holo</option>
+            <option>Full Art</option><option>Special Art Rare</option><option>Ultra Rare</option>
+            <option>Secret Rare</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Rarity</label>
+          <select id="mf_Rarity">
+            <option value="">—</option>
+            <option>Common</option><option>Uncommon</option><option>Rare</option>
+            <option>Holo Rare</option><option>Art Rare</option><option>Special Art Rare</option>
+            <option>Ultra Rare</option><option>Secret Rare</option><option>Promo</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date Acquired</label>
+          <input type="month" id="mf_Date" placeholder="MM/YY">
+          <button class="childhood-toggle" id="mf_ChildhoodToggle" type="button">📦 Mark as Childhood</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="ghost" id="clearManualBtn">Clear</button>
+        <button id="addManualBtn">Add to Inventory</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ===== EBAY SYNC MODAL ===== -->
+<div id="ebaySyncModal" class="modal-overlay">
+  <div class="modal" style="width:min(820px,96vw);max-height:90vh;">
+    <button class="modal-close" id="ebaySyncClose">✕</button>
+    <h2>🔄 eBay Sync — Remove Sold Items from Inventory</h2>
+
+    <!-- Step 1: Upload -->
+    <div id="ebaySyncStep1">
+      <div class="ebay-sync-drop" id="ebaySyncDrop">
+        <input type="file" id="ebaySyncInput" accept=".csv,.xlsx,.xls,.tsv">
+        <div class="drop-icon">📦</div>
+        <p><strong>Drop your eBay transactions export here</strong> or click to browse</p>
+        <p class="hint">Accepts CSV, TSV, or XLSX — download from eBay Seller Hub → Orders → Export</p>
+      </div>
+      <div id="ebaySyncParseStatus" style="font-size:12.5px;color:var(--muted);min-height:18px;display:flex;align-items:center;gap:8px;"></div>
+    </div>
+
+    <!-- Step 2: Review matches -->
+    <div id="ebaySyncStep2" style="display:none;">
+      <div class="sync-summary-bar" id="ebaySyncSummary"></div>
+      <div class="sync-match-list" id="ebaySyncMatchList"></div>
+      <div class="modal-footer">
+        <button class="ghost" id="ebaySyncBack">← Back</button>
+        <button id="ebaySyncApplyBtn">✓ Apply — Remove &amp; Transfer Costs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD OTHER ORDER MODAL ===== -->
+<div id="addOtherOrderModal" class="modal-overlay">
+  <div class="modal" style="width:min(500px,96vw);">
+    <button class="modal-close" id="addOtherOrderClose">✕</button>
+    <h2>+ Add Sale</h2>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:5px;">Item Name *</label>
+        <input id="aoItemName" type="text" placeholder="e.g. Ann Taylor Knit Sweater size S"
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface-3);color:var(--ink);outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+          onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:5px;">Cost ($) <span style="font-weight:400;font-size:10px;">(what you paid)</span></label>
+          <input id="aoCost" type="number" step="0.01" placeholder="0.00" value="0"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface-3);color:var(--ink);outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:5px;">Sale Price ($)</label>
+          <input id="aoSalePrice" type="number" step="0.01" placeholder="0.00"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface-3);color:var(--ink);outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:5px;">Date</label>
+          <input id="aoDate" type="month"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface-3);color:var(--ink);outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:5px;">Owner</label>
+          <select id="aoOwner"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface-3);color:var(--ink);outline:none;box-sizing:border-box;">
+            <option value="Tim" selected>Tim</option>
+            <option value="Vince">Vince</option>
+            <option value="Juan">Juan</option>
+            <option value="River Legacy">River Legacy</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:5px;">Notes</label>
+        <input id="aoNotes" type="text" placeholder="Optional…"
+          style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface-3);color:var(--ink);outline:none;box-sizing:border-box;transition:border-color 0.15s;"
+          onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div id="aoStatus" style="min-height:16px;font-size:12px;color:var(--red);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="ghost" id="addOtherOrderCancel">Cancel</button>
+      <button id="addOtherOrderSave">Add Purchase</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== IMPORT EBAY ORDERS MODAL ===== -->
+<div id="importOrdersModal" class="modal-overlay">
+  <div class="modal" style="width:min(860px,96vw);max-height:92vh;">
+    <button class="modal-close" id="importOrdersClose">&#x2715;</button>
+    <h2>&#x1F4E5; Import eBay Orders &#x2192; Add to Orders Sheet</h2>
+
+    <!-- Step 1: Upload -->
+    <div id="importStep1">
+      <div style="margin-bottom:14px;padding:10px 14px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.28);border-radius:8px;font-size:12px;color:var(--ink-soft);line-height:1.6;">
+        <strong style="color:var(--green);">How to export from eBay:</strong>
+        Seller Hub &#x2192; Orders &#x2192; <em>All Orders</em> &#x2192; Export &#x2192; <strong>Download report (CSV)</strong>.
+        The dashboard will pull only the columns it needs and let you assign an Owner to each order.
+      </div>
+      <div class="import-drop" id="importDrop">
+        <input type="file" id="importFileInput" accept=".csv,.tsv">
+        <div class="drop-icon">&#x1F4C4;</div>
+        <p><strong>Drop your eBay Orders CSV here</strong> or click to browse</p>
+        <p class="hint">CSV or TSV export from eBay Seller Hub &#x2192; Orders &#x2192; Export</p>
+      </div>
+      <div id="importParseStatus" style="font-size:12.5px;color:var(--muted);min-height:18px;display:flex;align-items:center;gap:8px;"></div>
+    </div>
+
+    <!-- Step 2: Review & assign owners -->
+    <div id="importStep2" style="display:none;">
+      <div class="import-summary-bar" id="importSummaryBar"></div>
+
+      <!-- Config defaults -->
+      <div class="import-config-bar">
+        <div class="cfg-field">
+          <label>eBay FVF Rate %</label>
+          <input type="number" id="importFvfRate" value="13.25" step="0.01" min="0" max="30" title="eBay Final Value Fee %. Used to estimate Net Profit when fees aren&#x27;t in the CSV.">
+        </div>
+        <div class="cfg-field">
+          <label>Default Shipping Label ($)</label>
+          <input type="number" id="importShipLabel" value="5.50" step="0.01" min="0" title="Your average label cost. You can tweak per-order in the Orders tab after import.">
+        </div>
+        <div class="cfg-field">
+          <label>Default Owner</label>
+          <select id="importDefaultOwner">
+            <option value="">— set per order —</option>
+            <option>Tim</option><option>Vince</option><option>River Legacy</option><option>Juan</option>
+          </select>
+        </div>
+        <div style="margin-left:auto;align-self:flex-end;">
+          <button class="ghost" id="importApplyDefaultOwner" style="font-size:12px;padding:5px 12px;">Apply default owner to all new</button>
+        </div>
+      </div>
+
+      <div class="import-order-list" id="importOrderList"></div>
+
+      <div class="modal-footer" style="margin-top:14px;">
+        <button class="ghost" id="importBack">&#x2190; Back</button>
+        <button id="importConfirmBtn">&#x2713; Import Orders</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+
+
+<script>
+"use strict";
+
+// ============================================================================
+// Google Sheets Config — set these IDs, then share each sheet as
+// "Anyone with the link can view" in Google Drive
+// ============================================================================
+// Single consolidated Google Sheet — all 4 tabs live here
+// Moving the file in Google Drive is fine; the ID never changes.
+const MASTER_SHEET_ID = "103FBgK54UQPVxSR8rGgIpUktFqAbJqcQglwXq1SBUII";
+const SHEET_IDS = {
+  inventory:   "Inventory",
+  orders:      "eBay Orders",
+  otherOrders: "Other Orders",
+  activityLog: "Activity Log",
+};
+function sheetUrl(tabName) {
+  return `https://docs.google.com/spreadsheets/d/${MASTER_SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(tabName)}`;
+}
+
+// ============================================================================
+// Chart.js defaults
+// ============================================================================
+if (window.Chart) {
+  Chart.defaults.color = "#c5cee0";
+  Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
+  Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+}
+
+// ============================================================================
+// State
+// ============================================================================
+const STATE = {
+  inventory: [],
+  orders: [],
+  otherOrders: [],
+  activityLog: [],
+  invHeaders: [],
+  orderHeaders: [],
+  expandedOrders: new Set(),
+  expandedInventory: new Set(),
+  forSaleSet: new Map(),
+  currentTab: "overview",
+  dirty: new Set(),         // "sheetName!R{row}C{col}" — for cell highlight only
+  dirtyValues: new Map(),   // same key → new value (used by Push→Sheets export)
+};
+
+const INV_SHEET    = "Tim Inventory";
+const ORDERS_SHEET = "Ebay Orders";
+const OO_SHEET     = "Other Orders";
+const LOG_SHEET    = "Activity Log";
+const OWNERS = ["Tim", "Vince", "River Legacy", "Juan"];
+const INV_REMOVED_COLS = new Set(["Graded?", "Owner", "Qty", "$ Gain", "% Gain"]);
+const INV_COL_ORDER = [
+  "__forsale","Type","Card Name","SET","Cost ($)","Market ($)","__gain",
+  "Condition","Grade","Date Acquired",
+];
+const INV_DETAIL_COLS = ["Card # / ID", "Language", "Variant", "Rarity"];
+const INV_DETAIL_OPTIONS = {
+  "Language":  ["EN","JP","KR","DE","FR","ES","IT","PT"],
+  "Variant":   ["Normal","Holofoil","Reverse Holo","Full Art","Special Art Rare","Ultra Rare","Secret Rare","Art Rare"],
+  "Rarity":    ["Common","Uncommon","Rare","Holo Rare","Reverse Holo","Art Rare","Special Art Rare","Ultra Rare","Secret Rare","Promo","Amazing Rare"],
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+// ============================================================================
+// Utility
+// ============================================================================
+const fmtMoney = n => {
+  if (n == null || n === "" || isNaN(n)) return "—";
+  return (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+};
+const fmtPct = n => (n == null || isNaN(n)) ? "—" : (n * 100).toFixed(1) + "%";
+const fmtInt = n => (n == null || isNaN(n)) ? "—" : Math.round(n).toLocaleString("en-US");
+const num = v => (typeof v === "number" && !isNaN(v)) ? v : (parseFloat(v) || 0);
+
+function fmtDateInput(v) {
+  if (!v) return "";
+  const d = (v instanceof Date) ? v : new Date(v);
+  if (isNaN(d)) return "";
+  return d.toISOString().slice(0,10);
+}
+function fmtDateDisplay(v) {
+  const s = fmtDateInput(v);
+  if (!s) return "—";
+  return formatMonthShort(s.slice(0,7));
+}
+function fmtDateMMYY(v) {
+  const s = fmtDateInput(v);
+  if (!s) return "—";
+  return s.slice(5,7) + "/" + s.slice(2,4);
+}
+function fmtDateMonth(v) {
+  if (!v || v === CHILDHOOD_SENTINEL) return "";
+  if (typeof v === "string" && v.length >= 7 && v.includes("-")) return v.slice(0,7);
+  const s = fmtDateInput(v);
+  if (!s) return "";
+  return s.slice(0,7);
+}
+function formatMonthShort(yyyymm) {
+  if (!yyyymm) return "—";
+  const [year, month] = yyyymm.split("-");
+  const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(month)-1] || month;
+  return `${mon} '${year.slice(2)}`;
+}
+
+function ownerBadge(owner) {
+  const cls = owner === "Tim" ? "tim" : owner === "Vince" ? "vince" : owner === "Juan" ? "juan" : "river";
+  return `<span class="badge ${cls}">${owner || "—"}</span>`;
+}
+
+function toast(msg, kind = "") {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = "toast show " + kind;
+  setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// Simple A1 cell address encoder (no SheetJS needed)
+function cellAddr(row0, col0) {
+  let col = ""; let c = col0;
+  do { col = String.fromCharCode(65 + (c % 26)) + col; c = Math.floor(c / 26) - 1; } while (c >= 0);
+  return col + (row0 + 1);
+}
+
+// ============================================================================
+// CSV Parser
+// ============================================================================
+function parseCSV(text) {
+  const lines = []; let cur = ""; let inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === '\n' && !inQ) { lines.push(cur.replace(/\r$/,"")); cur = ""; }
+    else { cur += ch; }
+  }
+  if (cur.trim()) lines.push(cur);
+
+  function splitLine(line) {
+    const cells = []; let cell = ""; let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { q = !q; }
+      else if (c === ',' && !q) { cells.push(cell); cell = ""; }
+      else { cell += c; }
+    }
+    cells.push(cell);
+    return cells.map(c => c.trim());
+  }
+
+  const nonEmpty = lines.filter(l => l.trim() && l.trim() !== new Array(l.split(',').length).fill(',').join(''));
+  if (!nonEmpty.length) return { headers: [], rows: [] };
+  const headers = splitLine(nonEmpty[0]);
+  const rows = nonEmpty.slice(1).map(line => {
+    const vals = splitLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v !== ""));
+  return { headers, rows };
+}
+
+// ============================================================================
+// Google Sheets Loader
+// ============================================================================
+async function fetchSheetCSV(id) {
+  const url = sheetUrl(id);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching sheet ${id}`);
+  return res.text();
+}
+
+async function loadFromSheets() {
+  const info = $("#fileInfo");
+  info.textContent = "Loading from Google Sheets…";
+  $("#loadingBar").style.display = "block";
+  try {
+    const [invText, ordText, ooText] = await Promise.all([
+      fetchSheetCSV(SHEET_IDS.inventory),
+      fetchSheetCSV(SHEET_IDS.orders),
+      fetchSheetCSV(SHEET_IDS.otherOrders),
+    ]);
+
+    // Parse Inventory
+    const inv = parseCSV(invText);
+    STATE.invHeaders = inv.headers;
+    STATE.inventory = inv.rows.map((r, i) => {
+      if (!r["Card Name"]) return null;
+      const o = { __row: i + 2 };
+      inv.headers.forEach(h => { o[h] = r[h] === "" ? null : r[h]; });
+      if (o["Owner"]) o["Owner"] = o["Owner"].trim();
+      // Parse numeric fields
+      ["Cost ($)","Market ($)","$ Gain","% Gain","Qty"].forEach(h => {
+        if (o[h] != null && o[h] !== "") o[h] = parseFloat(o[h]) || 0;
+      });
+      // Parse date
+      if (o["Date Acquired"] && o["Date Acquired"] !== "__childhood__") {
+        const d = new Date(o["Date Acquired"] + "T00:00:00");
+        o["Date Acquired"] = isNaN(d) ? o["Date Acquired"] : d;
+      }
+      return o;
+    }).filter(Boolean);
+    STATE.forSaleSet = new Map();
+    STATE.inventory.forEach(item => {
+      const st = item["Status"] ? String(item["Status"]).trim() : "";
+      if (st === "For Sale" || st === "Grading") STATE.forSaleSet.set(item.__row, st);
+    });
+    if (!STATE.invHeaders.includes("Status")) STATE.invHeaders.push("Status");
+
+    // Parse Orders
+    const ord = parseCSV(ordText);
+    STATE.orderHeaders = ord.headers;
+    STATE.orders = ord.rows.map((r, i) => {
+      if (!r["Item Title"]) return null;
+      const o = { __row: i + 2 };
+      ord.headers.forEach(h => { o[h] = r[h] === "" ? null : r[h]; });
+      if (o["Owner"])    o["Owner"]    = String(o["Owner"]).trim();
+      if (o["Status"])   o["Status"]   = String(o["Status"]).trim();
+      if (o["Paid Out"]) o["Paid Out"] = String(o["Paid Out"]).trim();
+      // Parse numerics
+      ["Item Subtotal ($)","Net Profit ($)","Tim Share ($)","Vince Share ($)","Juan Share ($)",
+       "Buyer S&H ($)","eBay Tax ($)","FVF Variable ($)","Other Fees ($)","Total Fees ($)",
+       "Net from eBay ($)","Shipping Label ($)","Refund ($)","Gross ($)","Margin %"].forEach(h => {
+        if (o[h] != null && o[h] !== "") o[h] = parseFloat(o[h]);
+      });
+      // Recompute derived fields
+      const netFromEB = o["Net from eBay ($)"];
+      let np;
+      if (netFromEB != null && !isNaN(netFromEB) && netFromEB !== 0) {
+        np = netFromEB - num(o["Shipping Label ($)"]) - num(o["Refund ($)"]);
+      } else if (o["Net Profit ($)"] != null && !isNaN(o["Net Profit ($)"])) {
+        np = num(o["Net Profit ($)"]);
+      } else { np = 0; }
+      o["Net Profit ($)"] = np;
+      o["Total Fees ($)"] = num(o["FVF Variable ($)"]) + num(o["Other Fees ($)"]);
+      o["Gross ($)"] = num(o["Item Subtotal ($)"]) + num(o["Buyer S&H ($)"]);
+      o["Margin %"] = (o["Gross ($)"] > 0) ? np / o["Gross ($)"] : 0;
+      const allNull = o["Tim Share ($)"] == null && o["Vince Share ($)"] == null && o["Juan Share ($)"] == null;
+      const allZero = num(o["Tim Share ($)"]) === 0 && num(o["Vince Share ($)"]) === 0 && num(o["Juan Share ($)"]) === 0;
+      if (allNull || (allZero && np !== 0)) {
+        const s = computeShares(o["Owner"], np);
+        o["Tim Share ($)"] = s.tim; o["Vince Share ($)"] = s.vince; o["Juan Share ($)"] = s.juan;
+      }
+      o["River Legacy Share ($)"] = computeShares(o["Owner"], np).riverLegacy;
+      return o;
+    }).filter(Boolean);
+
+    // Parse Other Orders
+    const oo = parseCSV(ooText);
+    STATE.otherOrders = oo.rows.map(r => {
+      const id = r.id || r["id"] || ("oo_" + Math.random().toString(36).slice(2));
+      return {
+        id,
+        itemName:  r.itemName  || r["Item Name"]  || "",
+        cost:      parseFloat(r.cost || r["Cost ($)"] || 0) || 0,
+        salePrice: parseFloat(r.salePrice || r["Sale Price ($)"] || 0) || 0,
+        ebayFees:  parseFloat(r.ebayFees  || r["eBay Fees ($)"]  || 0) || 0,
+        date:  r.date  || r["Date"]  || "",
+        owner: r.owner || r["Owner"] || "",
+        notes: r.notes || r["Notes"] || "",
+      };
+    }).filter(r => r.itemName);
+    STATE.otherOrders.forEach(calcOO);
+
+    info.textContent = `Loaded from Google Sheets · ${STATE.inventory.length} inventory · ${STATE.orders.length} orders`;
+    $("#loadingBar").style.display = "none";
+    $("#tabs").classList.remove("hidden");
+    $("#emptyState").classList.add("hidden");
+    STATE.dirty.clear(); STATE.dirtyValues.clear();
+    showTab(STATE.currentTab);
+    toast("Data loaded", "success");
+  } catch(err) {
+    $("#loadingBar").style.display = "none";
+    info.textContent = "⚠ Could not load — see error below";
+    $("#emptyState").classList.remove("hidden");
+    $("#emptyState").innerHTML = `
+      <h2>⚠ Could not connect to Google Sheets</h2>
+      <p>${escapeHtml(err.message)}</p>
+      <p>Make sure each sheet is shared as <strong>"Anyone with the link can view"</strong>:</p>
+      <p>Open the sheet in Google Drive → Share → Change to "Anyone with the link" → Viewer → Done</p>
+      <p><a href="https://docs.google.com/spreadsheets/d/${MASTER_SHEET_ID}" target="_blank" style="color:var(--gold)">Open River Legacy Master Sheet ↗</a></p>
+      <button onclick="loadFromSheets()" style="margin-top:12px;">Retry</button>`;
+    console.error(err);
+  }
+}
+
+// ============================================================================
+// Dirty tracking (for Push→Sheets highlighting)
+// ============================================================================
+function markDirty(sheetName, row1, col1, value) {
+  const addr = `${sheetName}!${cellAddr(row1 - 1, col1 - 1)}`;
+  STATE.dirty.add(addr);
+  STATE.dirtyValues.set(addr, value);
+  $("#pushInvBtn").disabled   = false;
+  $("#pushOrdersBtn").disabled = false;
+}
+
+function logActivity(action, detail, oldVal, newVal) {
+  const ts = new Date().toISOString().replace("T"," ").slice(0,19);
+  STATE.activityLog.push({ timestamp: ts, action, detail: detail||"", oldValue: oldVal??""  , newValue: newVal??"" });
+}
+
+// ============================================================================
+// Share calculations
+// ============================================================================
+function computeShares(owner, netProfit) {
+  const np = num(netProfit);
+  if (owner === "Tim")          return { tim: np, vince: 0, juan: 0, riverLegacy: 0 };
+  if (owner === "Vince")        return { tim: 0, vince: np, juan: 0, riverLegacy: 0 };
+  if (owner === "River Legacy") return { tim: np/2, vince: np/2, juan: 0, riverLegacy: np };
+  if (owner === "Juan")         return { tim: np*0.06, vince: np*0.06, juan: np*0.88, riverLegacy: np*0.12 };
+  return { tim: 0, vince: 0, juan: 0, riverLegacy: 0 };
+}
+
+// ============================================================================
+// Other Orders helper
+// ============================================================================
+function calcOO(o) {
+  const gross = num(o.salePrice) - num(o.cost);
+  o.grossProfit = gross;
+  o.netProfit   = gross - num(o.ebayFees);
+}
+
+// ============================================================================
+// Push to Sheets (TSV clipboard)
+// ============================================================================
+async function pushToSheets(sheetName, rows, headers) {
+  const lines = [headers.join("\t")];
+  for (const r of rows) {
+    lines.push(headers.map(h => {
+      const v = r[h];
+      if (v == null || v === "") return "";
+      if (v instanceof Date) return fmtDateInput(v);
+      if (typeof v === "number") return h === "Margin %" ? v.toFixed(6) : v.toFixed(2);
+      return String(v).replace(/[\t\r\n]/g," ");
+    }).join("\t"));
+  }
+  const tsv = lines.join("\n");
+  try { await navigator.clipboard.writeText(tsv); }
+  catch(e) { const ta = document.createElement("textarea"); ta.value=tsv; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
+  toast(`${rows.length} rows copied — paste into A1 in Google Sheets`, "success");
+}
+
+// ============================================================================
+// Tabs
+// ============================================================================
+function showTab(name) {
+  STATE.currentTab = name;
+  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  $("#tabOverview").classList.toggle("hidden", name !== "overview");
+  $("#tabInventory").classList.toggle("hidden", name !== "inventory");
+  $("#tabOrders").classList.toggle("hidden", name !== "orders");
+  if (name === "overview") renderOverview();
+  if (name === "inventory") renderInventory();
+  if (name === "orders") renderOrders();
+}
+
+// ============================================================================
+// Overview
+// ============================================================================
+function renderOverview() {
+  if (!STATE.orders) return;
+  const orders = STATE.orders;
+  const inv = STATE.inventory;
+
+  // Payout panel
+  const payees = [
+    { name: "Vince", shareKey: "Vince Share ($)", badge: "vince" },
+    { name: "Juan",  shareKey: "Juan Share ($)",  badge: "juan"  },
+  ];
+  const payoutHtml = payees.map(p => {
+    const unpaid = orders.filter(o => o["Owner"] === p.name && o["Paid Out"] !== "Yes");
+    if (!unpaid.length) return `<div class="payout-person"><div class="payout-person-header"><span>${ownerBadge(p.name)}</span><span class="total" style="color:var(--muted)">All paid out ✓</span></div></div>`;
+    const total = unpaid.reduce((s, o) => s + num(o[p.shareKey]), 0);
+    const lines = unpaid.map(o => {
+      const title = (o["Item Title"]||"—").slice(0,60) + ((o["Item Title"]||"").length>60?"…":"");
+      return `<div class="payout-line"><span class="item-name" title="${escapeHtml(o["Item Title"]||"")}">${escapeHtml(title)}</span><span class="item-amt">${fmtMoney(num(o[p.shareKey]))}</span></div>`;
+    }).join("");
+    return `<div class="payout-person"><div class="payout-person-header"><span>${ownerBadge(p.name)}</span><span class="total">${fmtMoney(total)}</span></div><div class="payout-line-items">${lines}</div></div>`;
+  }).join("");
+  $("#payoutContent").innerHTML = payoutHtml || `<p class="payout-empty">No unpaid orders.</p>`;
+
+  // Owner breakdown
+  const BREAKDOWN_OWNERS = ["Tim","River Legacy"];
+  const ownerRows = BREAKDOWN_OWNERS.map(o => {
+    const oOrders = orders.filter(x => x["Owner"] === o);
+    const netRev  = oOrders.reduce((s, x) => s + num(x["Net Profit ($)"]), 0);
+    const invItems = inv.filter(x => x["Owner"] === o);
+    const mktVal  = invItems.reduce((s, x) => s + num(x["Market ($)"]) * num(x["Qty"] || 1), 0);
+    const netGain = invItems.reduce((s, x) => {
+      const market = num(x["Market ($)"]);
+      const cost   = num(x["Cost ($)"]);
+      const isChildhood = x["Date Acquired"] === "__childhood__";
+      return s + (market - (isChildhood ? 0 : cost));
+    }, 0);
+    return { o, oCount: oOrders.length, netRev, invCount: invItems.length, mktVal, netGain };
+  });
+  $("#ownerTable").innerHTML = ownerRows.map(r => `
+    <tr><td>${ownerBadge(r.o)}</td><td class="num">${fmtInt(r.oCount)}</td>
+    <td class="num ${r.netRev>=0?"pos":"neg"}">${fmtMoney(r.netRev)}</td>
+    <td class="num">${fmtInt(r.invCount)}</td><td class="num">${fmtMoney(r.mktVal)}</td>
+    <td class="num ${r.netGain>=0?"pos":"neg"}">${fmtMoney(r.netGain)}</td></tr>`).join("");
+
+  renderTimBudget();
+  renderRLBudget();
+}
+
+// ============================================================================
+// Budget Cards
+// ============================================================================
+const TIM_BUDGET_CUTOFF = new Date("2026-02-01T00:00:00");
+function refreshBudgets() { renderTimBudget(); renderRLBudget(); }
+
+function renderTimBudget() {
+  STATE.otherOrders.forEach(calcOO);
+  const timSales = STATE.orders
+    .filter(o => { if (o["Owner"] !== "Tim") return false; const d = o["Sale Date"] ? new Date(o["Sale Date"]) : null; return d && d >= TIM_BUDGET_CUTOFF; })
+    .sort((a,b) => new Date(b["Sale Date"]) - new Date(a["Sale Date"]));
+  const ebayIn = timSales.reduce((s,o) => s + num(o["Net Profit ($)"]), 0);
+  const timOtherSales = (STATE.otherOrders||[]).filter(o => (o.owner||"").trim()==="Tim" && o.date >= "2026-02").sort((a,b) => (b.date||"").localeCompare(a.date||""));
+  const otherIn = timOtherSales.reduce((s,o) => s + num(o.netProfit), 0);
+  const moneyIn = ebayIn + otherIn;
+  const timInv = STATE.inventory
+    .filter(i => { if (i["Owner"] !== "Tim") return false; const d = i["Date Acquired"]; if (!d || d === "__childhood__") return false; const date = d instanceof Date ? d : new Date(d); return date >= TIM_BUDGET_CUTOFF; })
+    .sort((a,b) => { const da = a["Date Acquired"] instanceof Date ? a["Date Acquired"] : new Date(a["Date Acquired"]); const db = b["Date Acquired"] instanceof Date ? b["Date Acquired"] : new Date(b["Date Acquired"]); return db - da; });
+  const moneyOut = timInv.reduce((s,i) => s + num(i["Cost ($)"]), 0);
+  const budget = moneyIn - moneyOut;
+  const rowsEl = document.getElementById("timBudgetRows");
+  const totalEl = document.getElementById("timBudgetTotal");
+  if (!rowsEl || !totalEl) return;
+  const mkDate = v => fmtDateMMYY(v) || "—";
+  const mkOODate = d => !d || d.length < 7 ? "—" : d.slice(5,7) + "/" + d.slice(2,4);
+  const salesLines = timSales.map(o => `<div class="tbc-line-item"><span class="li-name">${escapeHtml((o["Item Title"]||"—").slice(0,55))}</span><span class="li-date">${mkDate(o["Sale Date"])}</span><span class="li-amt" style="color:var(--green)">+${fmtMoney(num(o["Net Profit ($)"]))}</span></div>`).join("");
+  const otherSalesLines = timOtherSales.map(o => `<div class="tbc-line-item"><span class="li-name">${escapeHtml((o.itemName||"—").slice(0,55))}</span><span class="li-date">${mkOODate(o.date)}</span><span class="li-amt" style="color:var(--green)">+${fmtMoney(num(o.netProfit))}</span></div>`).join("");
+  const invLines = timInv.map(i => `<div class="tbc-line-item"><span class="li-name">${escapeHtml((i["Card Name"]||"—").slice(0,55))}</span><span class="li-date">${mkDate(i["Date Acquired"])}</span><span class="li-amt" style="color:var(--amber)">-${fmtMoney(num(i["Cost ($)"]))}</span></div>`).join("");
+  rowsEl.innerHTML = `
+    <div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'">
+      <span class="lbl">💰 eBay Sales (net profit)</span><span class="val green">${fmtMoney(ebayIn)}</span><span class="chevron">▶</span>
+    </div>
+    <div class="tbc-line-items" style="max-height:9999px">${salesLines}</div>
+    ${otherSalesLines ? `<div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'"><span class="lbl">🏷 Other Sales</span><span class="val green">${fmtMoney(otherIn)}</span><span class="chevron">▶</span></div><div class="tbc-line-items" style="max-height:9999px">${otherSalesLines}</div>` : ""}
+    <div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'">
+      <span class="lbl">🛒 Inventory Purchases</span><span class="val" style="color:var(--amber)">${fmtMoney(moneyOut)}</span><span class="chevron">▶</span>
+    </div>
+    <div class="tbc-line-items" style="max-height:9999px">${invLines}</div>`;
+  totalEl.textContent = fmtMoney(budget);
+  totalEl.className = "val " + (budget >= 0 ? "" : "red");
+}
+
+function renderRLBudget() {
+  const rlSales = STATE.orders
+    .filter(o => { const d = o["Sale Date"] ? new Date(o["Sale Date"]) : null; return d && d >= TIM_BUDGET_CUTOFF; })
+    .sort((a,b) => new Date(b["Sale Date"]) - new Date(a["Sale Date"]));
+  const revenueIn = rlSales.reduce((s,o) => { const sh = computeShares(o["Owner"], num(o["Net Profit ($)"])); return s + sh.riverLegacy; }, 0);
+  const rlInv = STATE.inventory
+    .filter(i => { const d = i["Date Acquired"]; if (!d || d === "__childhood__") return false; const date = d instanceof Date ? d : new Date(d); return date >= TIM_BUDGET_CUTOFF; })
+    .sort((a,b) => { const da = a["Date Acquired"] instanceof Date ? a["Date Acquired"] : new Date(a["Date Acquired"]); const db = b["Date Acquired"] instanceof Date ? b["Date Acquired"] : new Date(b["Date Acquired"]); return db - da; });
+  const moneyOut = rlInv.reduce((s,i) => s + num(i["Cost ($)"]), 0);
+  const budget = revenueIn - moneyOut;
+  const rowsEl = document.getElementById("rlBudgetRows");
+  const totalEl = document.getElementById("rlBudgetTotal");
+  if (!rowsEl || !totalEl) return;
+  const mkDate = v => fmtDateMMYY(v) || "—";
+  const salesLines = rlSales.map(o => { const sh = computeShares(o["Owner"], num(o["Net Profit ($)"])); return `<div class="tbc-line-item"><span class="li-name">${escapeHtml((o["Item Title"]||"—").slice(0,50))}</span><span class="li-date">${mkDate(o["Sale Date"])} ${ownerBadge(o["Owner"])}</span><span class="li-amt" style="color:var(--green)">+${fmtMoney(sh.riverLegacy)}</span></div>`; }).join("");
+  const invLines = rlInv.map(i => `<div class="tbc-line-item"><span class="li-name">${escapeHtml((i["Card Name"]||"—").slice(0,50))}</span><span class="li-date">${mkDate(i["Date Acquired"])} ${ownerBadge(i["Owner"]||"")}</span><span class="li-amt" style="color:var(--amber)">-${fmtMoney(num(i["Cost ($)"]))}</span></div>`).join("");
+  rowsEl.innerHTML = `
+    <div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'">
+      <span class="lbl">💰 RL Revenue Share</span><span class="val green">${fmtMoney(revenueIn)}</span><span class="chevron">▶</span>
+    </div>
+    <div class="tbc-line-items" style="max-height:9999px">${salesLines}</div>
+    <div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'">
+      <span class="lbl">🛒 All Inventory Purchases</span><span class="val" style="color:var(--amber)">${fmtMoney(moneyOut)}</span><span class="chevron">▶</span>
+    </div>
+    <div class="tbc-line-items" style="max-height:9999px">${invLines}</div>`;
+  totalEl.textContent = fmtMoney(budget);
+  totalEl.className = "val " + (budget >= 0 ? "" : "red");
+  if (totalEl.style) totalEl.style.color = budget >= 0 ? "#22c55e" : "var(--red)";
+}
+
+
+// ============================================================================
+// Inventory tab
+// ============================================================================
+const CHILDHOOD_SENTINEL = "__childhood__";
+const INV_EDITABLE_NUM = new Set(["Cost ($)","Market ($)"]);
+let invFilters = { search: "", owner: "" };
+let invSort = { column: null, direction: "asc" };
+
+function sortRows(rows, column, direction, opts={}) {
+  if (!column) return rows;
+  const numeric = opts.numeric || column.includes("$") || column === "Qty";
+  const isDate = opts.date || column === "Date Acquired" || column === "Sale Date";
+  const dir = direction === "asc" ? 1 : -1;
+  return [...rows].sort((a,b) => {
+    let va = a[column], vb = b[column];
+    if (isDate) { if (va === CHILDHOOD_SENTINEL) va = new Date("1900-01-01"); if (vb === CHILDHOOD_SENTINEL) vb = new Date("1900-01-01"); }
+    const aNull = va == null || va === ""; const bNull = vb == null || vb === "";
+    if (aNull && bNull) return 0; if (aNull) return 1; if (bNull) return -1;
+    if (numeric) return (num(va) - num(vb)) * dir;
+    if (isDate) return (new Date(va) - new Date(vb)) * dir;
+    return String(va).localeCompare(String(vb), undefined, {numeric:true}) * dir;
+  });
+}
+
+function renderInventory() {
+  if (!STATE.inventory) return;
+  $$(".owner-filter-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.owner === invFilters.owner));
+
+  const filtered = STATE.inventory.filter(i => {
+    if (invFilters.owner && i["Owner"] !== invFilters.owner) return false;
+    if (invFilters.search) {
+      const hay = ((i["Card Name"]||"")+" "+(i["Set / Product"]||"")+" "+(i["Game"]||"")+" "+(i["Owner"]||"")).toLowerCase();
+      if (!hay.includes(invFilters.search)) return false;
+    }
+    return true;
+  });
+
+  filtered.forEach(item => {
+    const st = STATE.forSaleSet.get(item.__row);
+    item.__forsaleVal = st === "For Sale" ? 0 : st === "Grading" ? 1 : 2;
+    let dv = item["$ Gain"] != null && item["$ Gain"] !== "" ? Number(item["$ Gain"]) : null;
+    if (dv == null) { const m = item["Market ($)"] != null ? Number(item["Market ($)"]) : null; if (m != null) dv = m - (item["Cost ($)"] != null ? Number(item["Cost ($)"]) : 0); }
+    item.__gainVal = dv;
+  });
+
+  const sortCol = invSort.column === "__gain" ? "__gainVal" : invSort.column === "__forsale" ? "__forsaleVal" : invSort.column;
+  const sorted = sortRows(filtered, sortCol, invSort.direction);
+
+  const inlineHeaders = INV_COL_ORDER.filter(h => {
+    if (h === "__forsale" || h === "__gain") return true;
+    if (h === "Type") return STATE.invHeaders.includes("Game");
+    if (h === "SET")  return STATE.invHeaders.includes("Set / Product");
+    return STATE.invHeaders.includes(h) && !INV_REMOVED_COLS.has(h) && !INV_DETAIL_COLS.includes(h);
+  });
+
+  const hdrCells = inlineHeaders.map(h => {
+    const label = h === "__gain" ? "Gain" : h === "__forsale" ? "Status" : h;
+    const editable = INV_EDITABLE_NUM.has(h) || h === "Date Acquired" || h === "Condition" || h === "Grade";
+    const numeric = h === "__gain" || h.includes("$");
+    const sortKey = h === "Type" ? "Game" : h === "SET" ? "Set / Product" : h;
+    const activeSortCol = invSort.column;
+    const sortClass = activeSortCol === h ? `sort-${invSort.direction}` : "";
+    return `<th class="resizable sortable ${editable?"editable":""} ${numeric?"num":""} ${sortClass}" data-col="${sortKey.replace(/"/g,"&quot;")}">
+      ${label}<span class="col-resize-handle" data-col="${sortKey.replace(/"/g,"&quot;")}"></span></th>`;
+  }).join("");
+  $("#invHead").innerHTML = `<th class="expand-th"></th>` + hdrCells;
+  $("#invCount").textContent = `${sorted.length} of ${STATE.inventory.length} items`;
+  const colSpan = inlineHeaders.length + 1;
+
+  $("#invBody").innerHTML = sorted.map(item => {
+    const isExpanded = STATE.expandedInventory.has(item.__row);
+    const cells = inlineHeaders.map(h => {
+      if (h === "__forsale") {
+        const st = STATE.forSaleSet.get(item.__row) || "Hold";
+        const cls = st === "For Sale" ? "active" : st === "Grading" ? "grading" : "";
+        return `<td class="forsale-cell"><span class="forsale-toggle ${cls}" data-row="${item.__row}"><span class="dot"></span>${st}</span></td>`;
+      }
+      if (h === "Type") return `<td>${item["Game"] ?? "—"}</td>`;
+      if (h === "SET")  return `<td>${item["Set / Product"] ?? "—"}</td>`;
+      if (h === "__gain") {
+        let dv = item["$ Gain"] != null && item["$ Gain"] !== "" ? Number(item["$ Gain"]) : null;
+        let pv = item["% Gain"] != null && item["% Gain"] !== "" ? Number(item["% Gain"]) : null;
+        const cost = item["Cost ($)"] != null ? Number(item["Cost ($)"]) : null;
+        const market = item["Market ($)"] != null ? Number(item["Market ($)"]) : null;
+        const isChildhood = item["Date Acquired"] === CHILDHOOD_SENTINEL;
+        if (dv == null && market != null) { dv = market - (cost ?? 0); pv = (cost != null && cost > 0) ? ((market-cost)/cost)*100 : null; }
+        if (dv == null) return `<td class="num gain-cell">—</td>`;
+        item.__gainVal = dv;
+        const cls = dv >= 0 ? "pos" : "neg";
+        const sign = dv >= 0 ? "+" : "";
+        const pStr = pv != null ? `<span class="gain-pct">(${pv>=0?"+":""}${pv.toFixed(1)}%)</span>` : (isChildhood||cost===0?`<span class="gain-pct" title="Cost $0">📦</span>`:"");
+        return `<td class="num gain-cell ${cls}">${sign}${fmtMoney(dv)}${pStr}</td>`;
+      }
+      const v = item[h];
+      const addr = `${INV_SHEET}!${cellAddr(item.__row-1, STATE.invHeaders.indexOf(h))}`;
+      const isDirty = STATE.dirty.has(addr);
+      if (INV_EDITABLE_NUM.has(h)) return `<td class="num editable ${isDirty?"dirty":""}"><input type="number" step="0.01" value="${v!=null&&v!==""?Number(v).toFixed(2):""}" data-row="${item.__row}" data-field="${h}" placeholder="0.00"></td>`;
+      if (h === "Date Acquired") {
+        const isChildhood = v === CHILDHOOD_SENTINEL;
+        if (isChildhood) return `<td class="editable ${isDirty?"dirty":""}" style="white-space:nowrap"><span style="color:var(--amber);font-size:11px;font-weight:700">📦 Childhood</span><button class="childhood-clear-btn" data-row="${item.__row}" style="margin-left:4px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0">✕</button></td>`;
+        const monthVal = fmtDateMonth(v);
+        const displayVal = monthVal ? formatMonthShort(monthVal) : "—";
+        return `<td class="editable ${isDirty?"dirty":""}" style="white-space:nowrap"><div style="display:flex;gap:4px;align-items:center"><span class="date-display" data-row="${item.__row}" style="font-size:12px;min-width:48px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px">${displayVal}</span><input type="month" value="${monthVal}" data-row="${item.__row}" data-field="Date Acquired" class="date-month-inp" style="display:none;width:130px;font-size:12px;padding:2px 4px"><button class="childhood-set-btn" data-row="${item.__row}" title="Mark Childhood" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0;opacity:0.5">📦</button></div></td>`;
+      }
+      if (h === "Condition") {
+        const opts = ["","GRADED","NM","LP","MP","HP"];
+        const cur = v == null ? "" : String(v);
+        return `<td class="editable ${isDirty?"dirty":""}"><select data-row="${item.__row}" data-field="Condition" class="condition-sel">${opts.map(o=>`<option value="${o}" ${cur===o?"selected":""}>${o||"—"}</option>`).join("")}</select></td>`;
+      }
+      if (h === "Grade") {
+        if (item["Condition"] !== "GRADED") return `<td style="color:var(--muted);font-size:11px;text-align:center">—</td>`;
+        const gradeOpts = ["","10","9.5","9","8.5","8","7.5","7","6","5","4","3","2","1"];
+        const cur = v == null ? "" : String(v);
+        return `<td class="editable ${isDirty?"dirty":""}"><select data-row="${item.__row}" data-field="Grade">${gradeOpts.map(o=>`<option value="${o}" ${cur===o?"selected":""}>${o||"—"}</option>`).join("")}</select></td>`;
+      }
+      if (h.includes("$")) return `<td class="num">${v==null||v===""?"—":fmtMoney(v)}</td>`;
+      return `<td>${v==null?"—":v}</td>`;
+    }).join("");
+
+    const arrowCell = `<td class="expand-cell" data-row="${item.__row}"><span class="arrow">▶</span></td>`;
+    const mainRow = `<tr class="${isExpanded?"expanded":""}">${arrowCell}${cells}</tr>`;
+
+    const detailFields = INV_DETAIL_COLS.filter(h => STATE.invHeaders.includes(h));
+    const detailItems = detailFields.map(h => {
+      const v = item[h];
+      const addr = `${INV_SHEET}!${cellAddr(item.__row-1, STATE.invHeaders.indexOf(h))}`;
+      const isDirty = STATE.dirty.has(addr);
+      const opts = INV_DETAIL_OPTIONS[h];
+      let control;
+      if (opts) {
+        const allOpts = (v && !opts.includes(v)) ? [v,...opts] : opts;
+        control = `<select data-row="${item.__row}" data-field="${h}" class="${isDirty?"dirty":""}"><option value="">—</option>${allOpts.map(o=>`<option value="${o}" ${v===o?"selected":""}>${o}</option>`).join("")}</select>`;
+      } else {
+        control = `<input type="text" value="${v==null?"":v}" data-row="${item.__row}" data-field="${h}" placeholder="—" style="padding:4px 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--surface-2);color:var(--ink);width:100%;outline:none;${isDirty?"border-color:var(--gold);background:rgba(240,180,41,0.08);":""}">`;
+      }
+      return `<div class="detail-item"><span class="lbl">${h}</span>${control}</div>`;
+    }).join("");
+    const detailRow = `<tr class="inv-detail-row detail-row ${isExpanded?"show":""}" data-row="${item.__row}"><td colspan="${colSpan}"><div class="detail-grid">${detailItems}</div></td></tr>`;
+    return mainRow + detailRow;
+  }).join("");
+
+  // Bind handlers
+  $$("#invBody input").forEach(inp => {
+    inp.addEventListener("change", e => { onInvEdit(e); if (inp.classList.contains("date-month-inp")) { const span = inp.previousElementSibling; if(span) span.textContent = inp.value ? formatMonthShort(inp.value) : "—"; inp.style.display="none"; if(span) span.style.display=""; } });
+    inp.addEventListener("blur", e => { onInvEdit(e); if (inp.classList.contains("date-month-inp")) { setTimeout(()=>{ inp.style.display="none"; const span=inp.previousElementSibling; if(span) span.style.display=""; },150); } });
+  });
+  $$("#invBody .date-display").forEach(span => {
+    span.addEventListener("click", () => { const inp=span.nextElementSibling; if(!inp||!inp.classList.contains("date-month-inp")) return; span.style.display="none"; inp.style.display=""; inp.focus(); try{inp.showPicker();}catch(e){} });
+  });
+  $$("#invBody select").forEach(sel => {
+    sel.addEventListener("change", e => { onInvEdit(e); if(sel.classList.contains("condition-sel")){ if(sel.value!=="GRADED"){ const row=parseInt(sel.dataset.row); const item=STATE.inventory.find(i=>i.__row===row); if(item&&item["Grade"]!=null){item["Grade"]=null; markDirty(INV_SHEET,row,STATE.invHeaders.indexOf("Grade")+1,"");} } renderInventory(); } });
+  });
+  $$("#invBody .childhood-set-btn").forEach(btn => {
+    btn.addEventListener("click", () => { const row=parseInt(btn.dataset.row); const item=STATE.inventory.find(i=>i.__row===row); if(!item) return; item["Date Acquired"]=CHILDHOOD_SENTINEL; item["Cost ($)"]=0; markDirty(INV_SHEET,row,STATE.invHeaders.indexOf("Date Acquired")+1,CHILDHOOD_SENTINEL); markDirty(INV_SHEET,row,STATE.invHeaders.indexOf("Cost ($)")+1,0); renderInventory(); });
+  });
+  $$("#invBody .childhood-clear-btn").forEach(btn => {
+    btn.addEventListener("click", () => { const row=parseInt(btn.dataset.row); const item=STATE.inventory.find(i=>i.__row===row); if(!item) return; item["Date Acquired"]=null; markDirty(INV_SHEET,row,STATE.invHeaders.indexOf("Date Acquired")+1,""); renderInventory(); });
+  });
+  $$("#invBody .forsale-toggle").forEach(el => {
+    el.addEventListener("click", () => {
+      const row=parseInt(el.dataset.row); const cur=STATE.forSaleSet.get(row)||"Hold";
+      const next=cur==="Hold"?"For Sale":cur==="For Sale"?"Grading":"Hold";
+      if(next==="Hold") STATE.forSaleSet.delete(row); else STATE.forSaleSet.set(row,next);
+      el.className=`forsale-toggle${next==="For Sale"?" active":next==="Grading"?" grading":""}`;
+      el.innerHTML=`<span class="dot"></span>${next}`;
+      const item=STATE.inventory.find(i=>i.__row===row);
+      if(item){ item["Status"]=next==="Hold"?"":next; markDirty(INV_SHEET,row,STATE.invHeaders.indexOf("Status")+1,item["Status"]); logActivity("Status Change",item["Card Name"]||"Row "+row,cur,next); }
+    });
+  });
+  $$("#invHead th.sortable").forEach(th => th.addEventListener("click", e => {
+    if(e.target.classList.contains("col-resize-handle")) return;
+    const col=e.currentTarget.dataset.col; if(!col) return;
+    if(invSort.column===col) invSort.direction=invSort.direction==="asc"?"desc":"asc";
+    else { invSort.column=col; invSort.direction="asc"; }
+    renderInventory();
+  }));
+  $$("#invBody td.expand-cell").forEach(td => td.addEventListener("click", e => {
+    const row=parseInt(e.currentTarget.dataset.row); if(!row) return;
+    const main=e.currentTarget.parentElement; const detail=main.nextElementSibling;
+    const willExpand=!STATE.expandedInventory.has(row);
+    if(willExpand) STATE.expandedInventory.add(row); else STATE.expandedInventory.delete(row);
+    main.classList.toggle("expanded",willExpand);
+    if(detail&&detail.classList.contains("detail-row")) detail.classList.toggle("show",willExpand);
+  }));
+  bindColResize("#invHead","#invBody");
+}
+
+function onInvEdit(e) {
+  const inp=e.target; const row=parseInt(inp.dataset.row); const field=inp.dataset.field;
+  const item=STATE.inventory.find(i=>i.__row===row); if(!item||!field) return;
+  const colIdx=STATE.invHeaders.indexOf(field)+1;
+  if (field === "Date Acquired") {
+    const val = inp.value===""? null : new Date(inp.value+"-01T00:00:00");
+    item[field]=val; markDirty(INV_SHEET,row,colIdx,val==null?"":val);
+    if(inp.parentElement) inp.parentElement.classList.add("dirty");
+  } else if (INV_EDITABLE_NUM.has(field)) {
+    const val=inp.value===""?null:parseFloat(inp.value);
+    item[field]=isNaN(val)?null:val; markDirty(INV_SHEET,row,colIdx,val==null?"":val);
+    if(inp.parentElement) inp.parentElement.classList.add("dirty");
+  } else {
+    const val=inp.value===""?null:inp.value; item[field]=val;
+    markDirty(INV_SHEET,row,colIdx,val==null?"":val);
+    if(inp.tagName==="SELECT") inp.classList.add("dirty");
+    else { inp.style.borderColor="var(--gold)"; inp.style.background="rgba(240,180,41,0.08)"; }
+  }
+  if(field==="Cost ($)"||field==="Date Acquired") refreshBudgets();
+  logActivity("Inventory Edit",`${item["Card Name"]||"Row "+row} · ${field}`,"",String(inp.value??"")); 
+}
+
+// ============================================================================
+// Column resize
+// ============================================================================
+function bindColResize(headSel, bodySel) {
+  $$(headSel + " .col-resize-handle").forEach(handle => {
+    handle.addEventListener("mousedown", e => {
+      e.preventDefault(); e.stopPropagation();
+      const th=handle.closest("th"); handle.classList.add("dragging");
+      const startX=e.pageX; const startW=th.offsetWidth;
+      const onMove=ev=>{ const newW=Math.max(40,startW+ev.pageX-startX); th.style.width=newW+"px"; th.style.minWidth=newW+"px"; };
+      const onUp=()=>{ handle.classList.remove("dragging"); document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
+      document.addEventListener("mousemove",onMove); document.addEventListener("mouseup",onUp);
+    });
+    handle.addEventListener("dblclick", e => {
+      e.preventDefault(); e.stopPropagation();
+      const th=handle.closest("th"); const tbody=$(bodySel);
+      const canvas=document.createElement("canvas"); const ctx=canvas.getContext("2d");
+      const style=window.getComputedStyle(th); ctx.font=`${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      let maxW=ctx.measureText(th.textContent.trim()).width+24;
+      const colIdx=Array.from(th.parentElement.children).indexOf(th);
+      tbody.querySelectorAll("tr:not(.detail-row)").forEach(tr=>{ const td=tr.children[colIdx]; if(!td) return; ctx.font=`${window.getComputedStyle(td).fontWeight} ${style.fontSize} ${style.fontFamily}`; const w=ctx.measureText(td.textContent.trim()).width+20; if(w>maxW) maxW=w; });
+      const newW=Math.max(40,Math.ceil(maxW)); th.style.width=newW+"px"; th.style.minWidth=newW+"px";
+    });
+  });
+}
+
+// ============================================================================
+// Orders tab
+// ============================================================================
+let orderFilters = { search:"", owner:"", status:"" };
+const ORDER_VISIBLE_LAST = "Juan Share ($)";
+const ORDER_ALWAYS_VISIBLE_TAIL = ["Paid Out"];
+const COST_NA_SENTINEL = "N/A";
+const PAID_OUT_OPTIONS = ["","Yes","No"];
+
+function renderOrderCell(h, v, o, isDirty, editableSet) {
+  const numeric = h.includes("$") || h === "Margin %";
+  if (h === "Owner") return `<td class="editable ${isDirty?"dirty":""}"><select data-row="${o.__row}" data-field="Owner">${OWNERS.map(own=>`<option value="${own}" ${v===own?"selected":""}>${own}</option>`).join("")}</select></td>`;
+  if (h === "Paid Out") {
+    const owner=o["Owner"];
+    if (owner==="Tim"||owner==="River Legacy") return `<td class="num" style="color:var(--muted)">N/A</td>`;
+    const cur=v==null?"":String(v);
+    const unpaidStyle=cur==="No"?' style="color:var(--red);font-weight:600"':"";
+    return `<td class="editable ${isDirty?"dirty":""}"${unpaidStyle}><select data-row="${o.__row}" data-field="Paid Out"${unpaidStyle}>${PAID_OUT_OPTIONS.map(opt=>`<option value="${opt}" ${cur===opt?"selected":""}>${opt||"—"}</option>`).join("")}</select></td>`;
+  }
+  if (h === "Juan Share ($)") {
+    if (o["Owner"]!=="Juan") return `<td class="num" style="color:var(--muted)">N/A</td>`;
+    const unpaid=o["Paid Out"]==="No";
+    return `<td class="num ${unpaid?"neg":"pos"}" style="${unpaid?"font-weight:600":""}">${fmtMoney(num(v))}</td>`;
+  }
+  if (h === "Cost ($)") {
+    const cur=v==null?"":String(v); const isNA=cur===COST_NA_SENTINEL;
+    return `<td class="num editable ${isDirty?"dirty":""}"><div style="display:flex;align-items:center;gap:4px"><input type="number" step="0.01" value="${!isNA&&cur!==""?Number(v).toFixed(2):""}" data-row="${o.__row}" data-field="Cost ($)" placeholder="0.00" style="width:72px;${isNA?"display:none;":""}" ${isNA?"disabled":""}><button class="cost-na-btn" data-row="${o.__row}" style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid;background:${isNA?"rgba(126,138,168,0.15)":"transparent"};color:${isNA?"var(--ink)":"var(--muted)"};border-color:${isNA?"var(--border)":"var(--border-soft)"};cursor:pointer;white-space:nowrap">${isNA?"N/A ✓":"N/A"}</button></div></td>`;
+  }
+  if (h === "Net Gain ($)") {
+    const cost=o["Cost ($)"]; const netProfit=num(o["Net Profit ($)"]);
+    if (cost===COST_NA_SENTINEL||cost==null||cost==="") return `<td class="num" style="color:var(--muted)">—</td>`;
+    const gain=netProfit-num(cost); const cls=gain>=0?"pos":"neg";
+    return `<td class="num gain-cell ${cls}" style="font-weight:700">${gain>=0?"+":""}${fmtMoney(gain)}</td>`;
+  }
+  if (h === "River Legacy Share ($)") {
+    const owner=o["Owner"];
+    if (owner==="Tim"||owner==="Vince") return `<td class="num" style="color:var(--muted)">N/A</td>`;
+    return `<td class="num ${num(v)>=0?"pos":"neg"}">${fmtMoney(num(v))}</td>`;
+  }
+  if (h === "Sale Date") return `<td>${fmtDateDisplay(v)}</td>`;
+  if (h === "Item Title") return `<td class="col-title" title="${escapeHtml(v)}">${escapeHtml(v)||"—"}</td>`;
+  if (h === "Margin %") return `<td class="num">${fmtPct(num(v))}</td>`;
+  if (numeric) { const cls=h==="Net Profit ($)"?(num(v)>=0?"pos":"neg"):""; return `<td class="num ${cls}">${v==null||v===""?"—":fmtMoney(num(v))}</td>`; }
+  return `<td>${escapeHtml(v)||"—"}</td>`;
+}
+
+function renderOrders() {
+  renderOtherOrders();
+  if (!STATE.orders) return;
+  const owners = Array.from(new Set(STATE.orders.map(i=>i["Owner"]).filter(Boolean))).sort();
+  const statuses = Array.from(new Set(STATE.orders.map(i=>i["Status"]).filter(Boolean))).sort();
+  const ownerSel=$("#orderOwnerFilter"); const statusSel=$("#orderStatusFilter");
+  if(ownerSel.options.length<=1) ownerSel.innerHTML='<option value="">All owners</option>'+owners.map(o=>`<option>${o}</option>`).join("");
+  if(statusSel.options.length<=1) statusSel.innerHTML='<option value="">All statuses</option>'+statuses.map(s=>`<option>${s}</option>`).join("");
+
+  const filtered=STATE.orders.filter(o=>{
+    if(orderFilters.owner&&o["Owner"]!==orderFilters.owner) return false;
+    if(orderFilters.status&&o["Status"]!==orderFilters.status) return false;
+    if(orderFilters.search){ const hay=((o["Item Title"]||"")+" "+(o["Buyer Username"]||"")+" "+(o["Tracking #"]||"")).toLowerCase(); if(!hay.includes(orderFilters.search)) return false; }
+    return true;
+  });
+  filtered.sort((a,b)=>new Date(b["Sale Date"])-new Date(a["Sale Date"]));
+
+  const editableSet=new Set(["Owner","Paid Out","Cost ($)"]);
+  const cutIdx=STATE.orderHeaders.indexOf(ORDER_VISIBLE_LAST);
+  const baseVisible=(cutIdx>=0?STATE.orderHeaders.slice(0,cutIdx+1):STATE.orderHeaders.slice()).filter(h=>h!=="Tim Share ($)"&&h!=="Vince Share ($)");
+  const tailVisible=ORDER_ALWAYS_VISIBLE_TAIL.filter(h=>STATE.orderHeaders.includes(h));
+  const baseNoOwner=baseVisible.filter(h=>h!=="Owner");
+  const npIdx=baseNoOwner.indexOf("Net Profit ($)");
+  let baseWithGain;
+  if(npIdx>=0) baseWithGain=[...baseNoOwner.slice(0,npIdx+1),"Cost ($)","Net Gain ($)","Owner",...baseNoOwner.slice(npIdx+1)];
+  else baseWithGain=[...baseNoOwner,"Cost ($)","Net Gain ($)","Owner"];
+  const visibleHeaders=[...baseWithGain,"River Legacy Share ($)",...tailVisible];
+  const hiddenHeaders=STATE.orderHeaders.filter(h=>!visibleHeaders.includes(h)&&h!=="Cost ($)"&&h!=="Net Gain ($)");
+
+  $("#orderHead").innerHTML=`<th class="expand-th"></th>`+visibleHeaders.map(h=>{
+    const editable=editableSet.has(h); const numeric=h.includes("$")||h==="Margin %";
+    return `<th class="resizable ${editable?"editable":""} ${numeric?"num":""}">${h}<span class="col-resize-handle" data-col="${h.replace(/"/g,"&quot;")}"></span></th>`;
+  }).join("");
+  $("#orderCount").textContent=`${filtered.length} of ${STATE.orders.length} orders`;
+
+  const colSpan=visibleHeaders.length+1;
+  $("#orderBody").innerHTML=filtered.map(o=>{
+    const isExpanded=STATE.expandedOrders.has(o.__row);
+    const cells=visibleHeaders.map(h=>{
+      const colIdx=STATE.orderHeaders.indexOf(h);
+      const dirtyAddr=colIdx>=0?`${ORDERS_SHEET}!${cellAddr(o.__row-1,colIdx)}`:null;
+      return renderOrderCell(h,o[h],o,dirtyAddr?STATE.dirty.has(dirtyAddr):false,editableSet);
+    }).join("");
+    const arrowCell=`<td class="expand-cell" data-row="${o.__row}"><span class="arrow">▶</span></td>`;
+    const mainRow=`<tr class="${isExpanded?"expanded":""}">${arrowCell}${cells}</tr>`;
+    const items=hiddenHeaders.map(h=>`<div class="detail-item"><span class="lbl">${escapeHtml(h)}</span>${renderOrderDetailVal(h,o[h])}</div>`).join("");
+    const detailRow=`<tr class="detail-row ${isExpanded?"show":""}" data-row="${o.__row}"><td colspan="${colSpan}"><div class="detail-grid">${items}</div></td></tr>`;
+    return mainRow+detailRow;
+  }).join("");
+
+  $$("#orderBody input, #orderBody select").forEach(el=>{ el.addEventListener("change",onOrderEdit); if(el.tagName==="INPUT") el.addEventListener("blur",onOrderEdit); });
+  $$("#orderBody td.expand-cell").forEach(td=>td.addEventListener("click",e=>{
+    const row=parseInt(e.currentTarget.dataset.row); if(!row) return;
+    const main=e.currentTarget.parentElement; const detail=main.nextElementSibling;
+    const willExpand=!STATE.expandedOrders.has(row);
+    if(willExpand) STATE.expandedOrders.add(row); else STATE.expandedOrders.delete(row);
+    main.classList.toggle("expanded",willExpand);
+    if(detail&&detail.classList.contains("detail-row")) detail.classList.toggle("show",willExpand);
+  }));
+  $$("#orderBody .cost-na-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const row=parseInt(btn.dataset.row); const order=STATE.orders.find(o=>o.__row===row); if(!order) return;
+      order["Cost ($)"]=order["Cost ($)"]===COST_NA_SENTINEL?null:COST_NA_SENTINEL;
+      const colIdx=STATE.orderHeaders.indexOf("Cost ($)")+1;
+      if(colIdx>0) markDirty(ORDERS_SHEET,row,colIdx,order["Cost ($)"]??"");
+      renderOrders();
+    });
+  });
+  bindColResize("#orderHead","#orderBody");
+}
+
+function renderOrderDetailVal(h, v) {
+  const numeric=h.includes("$")||h==="Margin %";
+  if(h==="Margin %") return `<span class="val">${fmtPct(num(v))}</span>`;
+  if(numeric){ const cls=h==="Net Profit ($)"?(num(v)>=0?"pos":"neg"):""; if(v==null||v==="") return `<span class="val muted">—</span>`; return `<span class="val ${cls}">${fmtMoney(num(v))}</span>`; }
+  if(h==="Tracking #") return v?`<span class="val mono">${escapeHtml(v)}</span>`:`<span class="val muted">—</span>`;
+  return v==null||v===""?`<span class="val muted">—</span>`:`<span class="val">${escapeHtml(v)}</span>`;
+}
+
+function onOrderEdit(e) {
+  const el=e.target; const row=parseInt(el.dataset.row); const field=el.dataset.field;
+  const order=STATE.orders.find(o=>o.__row===row); if(!order) return;
+  if(field==="Owner"){
+    order["Owner"]=el.value;
+    const s=computeShares(el.value,order["Net Profit ($)"]);
+    order["Tim Share ($)"]=s.tim; order["Vince Share ($)"]=s.vince; order["Juan Share ($)"]=s.juan; order["River Legacy Share ($)"]=s.riverLegacy;
+    markDirty(ORDERS_SHEET,row,STATE.orderHeaders.indexOf("Owner")+1,el.value);
+    markDirty(ORDERS_SHEET,row,STATE.orderHeaders.indexOf("Tim Share ($)")+1,s.tim);
+    markDirty(ORDERS_SHEET,row,STATE.orderHeaders.indexOf("Vince Share ($)")+1,s.vince);
+    markDirty(ORDERS_SHEET,row,STATE.orderHeaders.indexOf("Juan Share ($)")+1,s.juan);
+    renderOrders(); refreshBudgets(); return;
+  }
+  if(field==="Paid Out"){ order[field]=el.value; markDirty(ORDERS_SHEET,row,STATE.orderHeaders.indexOf(field)+1,el.value); el.parentElement?.classList.add("dirty"); return; }
+  if(field==="Cost ($)"){ const val=el.value===""?null:parseFloat(el.value); order["Cost ($)"]=isNaN(val)?null:val; const colIdx=STATE.orderHeaders.indexOf("Cost ($)")+1; if(colIdx>0) markDirty(ORDERS_SHEET,row,colIdx,order["Cost ($)"]??""); el.closest("td")?.classList.add("dirty"); return; }
+  let v=el.value===""?0:parseFloat(el.value); if(isNaN(v)) v=0;
+  order[field]=v; markDirty(ORDERS_SHEET,row,STATE.orderHeaders.indexOf(field)+1,v); el.parentElement?.classList.add("dirty");
+}
+
+// ============================================================================
+// Other Orders
+// ============================================================================
+function renderOtherOrders() {
+  const hdrs=["id","itemName","cost","salePrice","ebayFees","date","owner","notes","grossProfit","netProfit"];
+  const displayHdrs=["Item","Owner","Date","Cost","Sale Price","eBay Fees","Net Profit","Notes"];
+  const body=$("#otherOrdersBody"); if(!body) return;
+  STATE.otherOrders.forEach(calcOO);
+  const search=($("#otherOrderSearch")?.value||"").toLowerCase();
+  const filtered=STATE.otherOrders.filter(o=>!search||((o.itemName||"")+" "+(o.owner||"")).toLowerCase().includes(search));
+  $("#otherOrderCount").textContent=`${filtered.length} items`;
+  if(!filtered.length){ $("#otherOrdersEmpty").style.display="block"; body.innerHTML=""; return; }
+  $("#otherOrdersEmpty").style.display="none";
+  const thead=$("#otherOrdersHead");
+  thead.innerHTML=`<th>Item</th><th>Owner</th><th>Date</th><th class="num">Cost</th><th class="num">Sale</th><th class="num">eBay Fees</th><th class="num">Net Profit</th><th>Notes</th>`;
+  body.innerHTML=filtered.map(o=>`<tr>
+    <td>${escapeHtml(o.itemName||"—")}</td>
+    <td>${ownerBadge(o.owner)}</td>
+    <td>${o.date?formatMonthShort(o.date):"—"}</td>
+    <td class="num">${fmtMoney(o.cost)}</td>
+    <td class="num">${fmtMoney(o.salePrice)}</td>
+    <td class="num">${fmtMoney(o.ebayFees)}</td>
+    <td class="num ${num(o.netProfit)>=0?"pos":"neg"}">${fmtMoney(o.netProfit)}</td>
+    <td style="color:var(--muted);font-size:11px">${escapeHtml(o.notes||"")}</td>
+  </tr>`).join("");
+  const totNet=filtered.reduce((s,o)=>s+num(o.netProfit),0);
+  $("#otherOrdersFoot").innerHTML=`<tr><td colspan="6" style="text-align:right;font-weight:700;color:var(--muted);font-size:11px">TOTAL NET</td><td class="num ${totNet>=0?"pos":"neg"}" style="font-weight:700">${fmtMoney(totNet)}</td><td></td></tr>`;
+}
+
+function addInventoryItem(fields) {
+  if(!STATE.inventory||!STATE.invHeaders.length) return;
+  const maxRow=STATE.inventory.reduce((m,i)=>Math.max(m,i.__row),STATE.invHeaders.length+1);
+  const newRow=maxRow+1;
+  const item={__row:newRow};
+  STATE.invHeaders.forEach(h=>{item[h]=null;});
+  if(fields["Date Acquired"]===CHILDHOOD_SENTINEL) fields["Cost ($)"]=0;
+  Object.assign(item,fields);
+  STATE.inventory.push(item);
+  STATE.invHeaders.forEach((h,colIdx)=>{ const v=item[h]; if(v!=null&&v!=="") markDirty(INV_SHEET,newRow,colIdx+1,v); });
+  renderInventory(); refreshBudgets();
+  logActivity("Inventory Added",fields["Card Name"]||"New item","","");
+}
+
+
+// ============================================================================
+// eBay Sync modal (remove sold items from inventory)
+// ============================================================================
+let ebaySyncMatches = [];
+function openEbaySyncModal(){ $("#ebaySyncModal").classList.add("open"); $("#ebaySyncStep1").style.display="block"; $("#ebaySyncStep2").style.display="none"; $("#ebaySyncParseStatus").innerHTML=""; ebaySyncMatches=[]; }
+function closeEbaySyncModal(){ $("#ebaySyncModal").classList.remove("open"); }
+$("#ebaySyncClose").addEventListener("click",closeEbaySyncModal);
+$("#ebaySyncModal").addEventListener("click",e=>{ if(e.target===$("#ebaySyncModal")) closeEbaySyncModal(); });
+$("#ebaySyncBack").addEventListener("click",()=>{ $("#ebaySyncStep1").style.display="block"; $("#ebaySyncStep2").style.display="none"; });
+
+const ebaySyncDrop=$("#ebaySyncDrop"), ebaySyncInput=$("#ebaySyncInput");
+ebaySyncDrop.addEventListener("dragover",e=>{e.preventDefault();ebaySyncDrop.classList.add("drag-over");});
+ebaySyncDrop.addEventListener("dragleave",()=>ebaySyncDrop.classList.remove("drag-over"));
+ebaySyncDrop.addEventListener("drop",e=>{e.preventDefault();ebaySyncDrop.classList.remove("drag-over");const f=e.dataTransfer.files[0];if(f)processEbayFile(f,"sync");});
+ebaySyncInput.addEventListener("change",()=>{const f=ebaySyncInput.files[0];if(f)processEbayFile(f,"sync"); ebaySyncInput.value="";});
+
+function detectCsvSep(text){ const l=text.split("\n")[0]; return (l.match(/\t/g)||[]).length>(l.match(/,/g)||[]).length?"\t":",";}
+
+function parseCsvLike(text,sep){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(!lines.length) return [];
+  const headers=splitCsvLine(lines[0],sep);
+  return lines.slice(1).map(line=>{ const vals=splitCsvLine(line,sep); const obj={}; headers.forEach((h,i)=>{obj[h.trim()]=(vals[i]||"").trim();}); return obj; }).filter(r=>Object.values(r).some(v=>v));
+}
+
+function splitCsvLine(line,sep){
+  if(sep==="\t") return line.split("\t");
+  const result=[]; let cur=""; let inQ=false;
+  for(let i=0;i<line.length;i++){ const c=line[i]; if(c==='"'){inQ=!inQ;}else if(c===sep&&!inQ){result.push(cur);cur="";}else{cur+=c;} }
+  result.push(cur); return result;
+}
+
+// Normalize eBay CSV row — handles the actual eBay Seller Hub export format
+function normalizeSoldRow(r){
+  const title = r["Item Title"] || r["item title"] || r["Title"] || r["Item title"] || "";
+  const soldFor = r["Sold For"] || r["Item price"] || r["Sale price"] || r["Total Price"] || "0";
+  const price = parseFloat(String(soldFor).replace(/[^0-9.-]/g,"")) || 0;
+  const date = r["Sale Date"] || r["Date sold"] || r["Order date"] || "";
+  const buyer = r["Buyer Username"] || r["Buyer username"] || r["Buyer"] || "";
+  const tracking = r["Tracking Number"] || r["Tracking #"] || "";
+  const shippingState = r["Ship To State"] || r["Buyer State"] || "";
+  const shipping = parseFloat(String(r["Shipping And Handling"]||"0").replace(/[^0-9.-]/g,"")) || 0;
+  return { title:title.trim(), price, date, buyer, tracking, shippingState, shipping };
+}
+
+async function processEbayFile(file, mode){
+  const status=mode==="sync"?$("#ebaySyncParseStatus"):$("#importParseStatus");
+  status.innerHTML=`<span class="spinner" style="width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block"></span> Parsing…`;
+  try {
+    const text=await file.text();
+    const sep=detectCsvSep(text);
+    const rows=parseCsvLike(text,sep);
+    if(!rows.length) throw new Error("No rows found.");
+    const soldItems=rows.map(r=>normalizeSoldRow(r)).filter(s=>s.title);
+    if(!soldItems.length) throw new Error("Could not find item titles. Make sure this is an eBay orders export.");
+    if(mode==="sync"){
+      status.innerHTML=`<span style="color:var(--green)">✓</span> Found <strong>${soldItems.length}</strong> items. Matching to inventory…`;
+      ebaySyncMatches=soldItems.map(sold=>({soldItem:sold,matchedInvRow:findBestInventoryMatch(sold.title),skipped:false}));
+      renderEbaySyncMatches();
+      $("#ebaySyncStep1").style.display="none"; $("#ebaySyncStep2").style.display="block";
+    } else {
+      renderImportOrders(soldItems,status);
+    }
+  } catch(err){ status.innerHTML=`<span style="color:var(--red)">⚠ ${escapeHtml(err.message)}</span>`; console.error(err); }
+}
+
+function normalizeCardName(s){ return s.toLowerCase().replace(/pokemon|pokémon|pok[eé]mon\s*tcg/gi,"").replace(/\bpsa\s*\d+\.?\d*\b/gi,"").replace(/\bgem\s*mt\b/gi,"").replace(/\bpsa\b/gi,"").replace(/\bnm\b|\bnear\s*mint\b/gi,"").replace(/\bholo(foil)?\b/gi,"").replace(/japanese|english/gi,"").replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim(); }
+function fuzzyScore(a,b){ const tokA=new Set(a.split(" ").filter(t=>t.length>2)); const tokB=new Set(b.split(" ").filter(t=>t.length>2)); if(!tokA.size||!tokB.size) return 0; let hits=0; tokA.forEach(t=>{if(tokB.has(t))hits++;}); if(a.includes(b)||b.includes(a)) hits+=1; return(2*hits)/(tokA.size+tokB.size); }
+function findBestInventoryMatch(soldTitle){ if(!STATE.inventory.length) return null; const soldNorm=normalizeCardName(soldTitle); let bestRow=null,bestScore=0; for(const item of STATE.inventory){const score=fuzzyScore(soldNorm,normalizeCardName((item["Card Name"]||"")+" "+(item["Set / Product"]||""))); if(score>bestScore){bestScore=score;bestRow=item.__row;}} if(bestScore>=0.72) return{invRow:bestRow,confidence:bestScore>=0.88?"high":"medium",score:bestScore}; if(bestScore>=0.4) return{invRow:bestRow,confidence:"low",score:bestScore}; return null; }
+
+function renderEbaySyncMatches(){
+  const total=ebaySyncMatches.length, matched=ebaySyncMatches.filter(m=>m.matchedInvRow&&!m.skipped).length, skipped=ebaySyncMatches.filter(m=>m.skipped).length, noMatch=ebaySyncMatches.filter(m=>!m.matchedInvRow&&!m.skipped).length;
+  $("#ebaySyncSummary").innerHTML=`<div class="ss-item"><span class="ss-label">Sold</span><span class="ss-val">${total}</span></div><div class="ss-item"><span class="ss-label">Matched</span><span class="ss-val green">${matched}</span></div><div class="ss-item"><span class="ss-label">No match</span><span class="ss-val amber">${noMatch}</span></div><div class="ss-item"><span class="ss-label">Skipped</span><span class="ss-val">${skipped}</span></div>`;
+  const list=$("#ebaySyncMatchList");
+  list.innerHTML=ebaySyncMatches.map((m,idx)=>{
+    const sold=m.soldItem; const match=m.matchedInvRow; const invItem=match?STATE.inventory.find(i=>i.__row===match.invRow):null;
+    const conf=match?match.confidence:"none"; const confLabel={high:"Strong match",medium:"Possible match",low:"Weak match",none:"No match"}[conf];
+    const invSideHtml=invItem?`<div class="side-name">${escapeHtml(invItem["Card Name"]||"—")}</div><div class="side-meta">${escapeHtml(invItem["Set / Product"]||"")}${invItem["Grade"]?` · ${invItem["Grade"]}`:""}${invItem["Owner"]?` · ${invItem["Owner"]}`:""}</div>${invItem["Cost ($)"]!=null?`<div class="side-cost">Cost: ${fmtMoney(num(invItem["Cost ($)"]))}</div>`:""}` : `<span class="no-match">No match found</span>`;
+    const invOptions=STATE.inventory.map(i=>`<option value="${i.__row}" ${invItem&&i.__row===invItem.__row?"selected":""}>${escapeHtml(i["Card Name"]||"?")} — ${escapeHtml(i["Set / Product"]||"")}${i["Grade"]?` [${i["Grade"]}]`:""} (${i["Owner"]||"?"})</option>`).join("");
+    return `<div class="sync-match-card ${m.skipped?"skipped":""}" data-idx="${idx}">
+      <div class="smh"><span class="sold-title">${escapeHtml(sold.title.slice(0,80)+(sold.title.length>80?"…":""))}</span><span class="sold-price">${sold.price?fmtMoney(sold.price):""}</span></div>
+      <div class="sync-match-grid">
+        <div class="sync-match-side"><div class="side-label">📦 eBay Sold</div><div class="side-name" style="font-size:11.5px;color:var(--ink-soft)">${escapeHtml(sold.title.slice(0,60)+(sold.title.length>60?"…":""))}</div>${sold.date?`<div class="side-meta">Sold: ${sold.date}</div>`:""}</div>
+        <div class="sync-match-side"><div class="side-label">🗂 Inventory Match <span class="sync-confidence ${conf}">${confLabel}</span></div>${invSideHtml}</div>
+      </div>
+      <div class="sync-match-actions">
+        <select class="match-sel" data-idx="${idx}"><option value="">— No match —</option>${invOptions}</select>
+        <button class="sync-skip-btn ${m.skipped?"skipped-btn":""}" data-idx="${idx}">${m.skipped?"↩ Undo Skip":"Skip"}</button>
+      </div>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".match-sel").forEach(sel=>sel.addEventListener("change",()=>{ const idx=parseInt(sel.dataset.idx); ebaySyncMatches[idx].matchedInvRow=sel.value?{invRow:parseInt(sel.value),confidence:"high",score:1}:null; ebaySyncMatches[idx].skipped=false; renderEbaySyncMatches(); }));
+  list.querySelectorAll(".sync-skip-btn").forEach(btn=>btn.addEventListener("click",()=>{ const idx=parseInt(btn.dataset.idx); ebaySyncMatches[idx].skipped=!ebaySyncMatches[idx].skipped; renderEbaySyncMatches(); }));
+  $("#ebaySyncApplyBtn").textContent=`✓ Apply — Remove ${matched} item${matched!==1?"s":""} & Transfer Costs`;
+}
+
+$("#ebaySyncApplyBtn").addEventListener("click",()=>{
+  let removed=0,costTransferred=0;
+  for(const m of ebaySyncMatches){
+    if(!m.matchedInvRow||m.skipped) continue;
+    const invItem=STATE.inventory.find(i=>i.__row===m.matchedInvRow.invRow); if(!invItem) continue;
+    const itemCost=invItem["Cost ($)"]!=null?num(invItem["Cost ($)"]):null;
+    const idx=STATE.inventory.indexOf(invItem); if(idx!==-1) STATE.inventory.splice(idx,1);
+    markDirty(INV_SHEET,invItem.__row,STATE.invHeaders.indexOf("Card Name")+1,"");
+    removed++;
+    if(itemCost!=null){
+      let bestOrder=null,bestScore=0;
+      for(const order of STATE.orders){ const score=fuzzyScore(normalizeCardName(m.soldItem.title),normalizeCardName(order["Item Title"]||"")); if(score>bestScore){bestScore=score;bestOrder=order;} }
+      if(bestOrder&&bestScore>0.3){ bestOrder["Cost ($)"]=itemCost; const baseNet=num(bestOrder["Net from eBay ($)"])-num(bestOrder["Shipping Label ($)"])-num(bestOrder["Refund ($)"]); bestOrder["Net Profit ($)"]=baseNet-itemCost; costTransferred++; }
+    }
+  }
+  closeEbaySyncModal();
+  if(STATE.currentTab==="inventory") renderInventory();
+  if(STATE.currentTab==="orders") renderOrders();
+  if(STATE.currentTab==="overview") renderOverview();
+  toast(`Removed ${removed} item${removed!==1?"s":""} · ${costTransferred} cost${costTransferred!==1?"s":""} transferred`,"success");
+});
+
+// ============================================================================
+// Import eBay Orders modal
+// ============================================================================
+let importOrderRows = [];
+const importDrop=$("#importDrop"), importFileInput=$("#importFileInput");
+if(importDrop){
+  importDrop.addEventListener("dragover",e=>{e.preventDefault();importDrop.classList.add("drag-over");});
+  importDrop.addEventListener("dragleave",()=>importDrop.classList.remove("drag-over"));
+  importDrop.addEventListener("drop",e=>{e.preventDefault();importDrop.classList.remove("drag-over");const f=e.dataTransfer.files[0];if(f)processEbayFile(f,"import");});
+}
+if(importFileInput) importFileInput.addEventListener("change",()=>{const f=importFileInput.files[0];if(f)processEbayFile(f,"import");importFileInput.value="";});
+
+function renderImportOrders(soldItems, status){
+  const fvf=parseFloat($("#importFvfRate")?.value||"13.25")/100;
+  const shipLabel=parseFloat($("#importShipLabel")?.value||"5.50");
+  const defaultOwner=$("#importDefaultOwner")?.value||"";
+  importOrderRows=soldItems.map((s,i)=>({...s,owner:defaultOwner,id:i,isNew:true}));
+  status.innerHTML=`<span style="color:var(--green)">✓</span> Found <strong>${soldItems.length}</strong> orders. Assign owners before importing.`;
+  $("#importStep1").style.display="none"; $("#importStep2").style.display="block";
+  const summaryBar=$("#importSummaryBar"); if(summaryBar) summaryBar.innerHTML=`<div class="ss-item"><span class="ss-label">Orders</span><span class="ss-val">${soldItems.length}</span></div>`;
+  const list=$("#importOrderList"); if(!list) return;
+  list.innerHTML=importOrderRows.map((r,idx)=>{
+    const gross=(r.price+r.shipping); const fvfAmt=gross*fvf; const net=gross-fvfAmt-shipLabel;
+    return `<div class="sync-match-card">
+      <div class="smh"><span class="sold-title">${escapeHtml(r.title.slice(0,80))}</span><span class="sold-price">${fmtMoney(r.price)}</span></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--muted)">
+        <span>Date: ${r.date}</span><span>Buyer: ${r.buyer}</span><span>S&H: ${fmtMoney(r.shipping)}</span><span>Est. Net: <strong style="color:var(--green)">${fmtMoney(net)}</strong></span>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:10px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);font-weight:600">Owner</label>
+        <select data-idx="${idx}" class="import-owner-sel" style="display:block;width:200px;margin-top:4px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface-3);color:var(--ink);font-size:12px;outline:none">
+          <option value="">— set owner —</option>
+          ${OWNERS.map(o=>`<option value="${o}" ${r.owner===o?"selected":""}>${o}</option>`).join("")}
+        </select>
+      </div>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".import-owner-sel").forEach(sel=>sel.addEventListener("change",()=>{ importOrderRows[parseInt(sel.dataset.idx)].owner=sel.value; }));
+}
+
+if($("#importConfirmBtn")){
+  $("#importConfirmBtn").addEventListener("click",()=>{
+    const fvf=parseFloat($("#importFvfRate")?.value||"13.25")/100;
+    const shipLabel=parseFloat($("#importShipLabel")?.value||"5.50");
+    const toAdd=importOrderRows.filter(r=>r.owner);
+    let added=0;
+    for(const r of toAdd){
+      const gross=r.price+r.shipping; const fvfAmt=parseFloat((gross*fvf).toFixed(2)); const net=parseFloat((gross-fvfAmt-shipLabel).toFixed(2));
+      const maxRow=STATE.orders.reduce((m,o)=>Math.max(m,o.__row),1);
+      const shares=computeShares(r.owner,net);
+      const newOrder={__row:maxRow+1,"Sale Date":r.date,"Item Title":r.title,"Owner":r.owner,"Item Subtotal ($)":r.price,"Net Profit ($)":net,"Tim Share ($)":shares.tim,"Vince Share ($)":shares.vince,"Juan Share ($)":shares.juan,"River Legacy Share ($)":shares.riverLegacy,"Margin %":gross>0?net/gross:0,"Buyer S&H ($)":r.shipping,"eBay Tax ($)":0,"FVF Variable ($)":fvfAmt,"Other Fees ($)":0,"Total Fees ($)":fvfAmt,"Net from eBay ($)":gross-fvfAmt,"Shipping Label ($)":shipLabel,"Refund ($)":0,"Gross ($)":gross,"Buyer Username":r.buyer,"Ship State":r.shippingState,"Tracking #":r.tracking,"Status":"Shipped","Paid Out":""};
+      STATE.orders.unshift(newOrder); added++;
+    }
+    closeImportOrdersModal(); renderOrders(); refreshBudgets();
+    toast(`Imported ${added} order${added!==1?"s":""}. Push → Sheets to save.`,"success");
+  });
+}
+if($("#importBack")) $("#importBack").addEventListener("click",()=>{ $("#importStep1").style.display="block"; $("#importStep2").style.display="none"; });
+if($("#importOrdersClose")) $("#importOrdersClose").addEventListener("click",closeImportOrdersModal);
+if($("#importOrdersModal")) $("#importOrdersModal").addEventListener("click",e=>{if(e.target===$("#importOrdersModal"))closeImportOrdersModal();});
+function closeImportOrdersModal(){ $("#importOrdersModal")?.classList.remove("open"); }
+if($("#importApplyDefaultOwner")) $("#importApplyDefaultOwner").addEventListener("click",()=>{ const def=$("#importDefaultOwner")?.value; if(!def) return; importOrderRows.forEach(r=>r.owner=def); $("#importOrderList")?.querySelectorAll(".import-owner-sel").forEach(sel=>{sel.value=def;}); });
+
+// ============================================================================
+// Add Entry Modal
+// ============================================================================
+$("#addEntryBtn").addEventListener("click",()=>$("#addEntryModal").classList.add("open"));
+$("#addEntryClose").addEventListener("click",closeAddModal);
+$("#addEntryModal").addEventListener("click",e=>{if(e.target===$("#addEntryModal"))closeAddModal();});
+function closeAddModal(){ $("#addEntryModal").classList.remove("open"); }
+$$("#addEntryModal .entry-tab").forEach(btn=>btn.addEventListener("click",()=>{ $$("#addEntryModal .entry-tab").forEach(b=>b.classList.remove("active")); $$("#addEntryModal .entry-pane").forEach(p=>p.classList.remove("active")); btn.classList.add("active"); $("#pane"+btn.dataset.pane.charAt(0).toUpperCase()+btn.dataset.pane.slice(1)).classList.add("active"); }));
+$$("#addEntryModal .ss-mode-btn").forEach(btn=>btn.addEventListener("click",()=>{ ssMode=btn.dataset.mode; $$("#addEntryModal .ss-mode-btn").forEach(b=>b.classList.toggle("active",b===btn)); $("#ssUpdateHint").style.display=ssMode==="update"?"block":"none"; const addBtn=$("#addParsedBtn"); if(addBtn) addBtn.textContent=ssMode==="update"?"Apply Updates":"Add to Inventory"; if(pendingScreenshots.length) parseScreenshots(); }));
+
+let pendingScreenshots=[],parsedCards=[],ssMode="add";
+const dropZone=$("#dropZone"),screenshotInput=$("#screenshotInput");
+dropZone.addEventListener("dragover",e=>{e.preventDefault();dropZone.classList.add("drag-over");});
+dropZone.addEventListener("dragleave",()=>dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop",e=>{e.preventDefault();dropZone.classList.remove("drag-over");handleFiles([...e.dataTransfer.files]);});
+screenshotInput.addEventListener("change",()=>{handleFiles([...screenshotInput.files]);screenshotInput.value="";});
+
+function handleFiles(files){ files.filter(f=>f.type.startsWith("image/")||f.name.toLowerCase().endsWith(".pdf")).forEach(file=>{ const reader=new FileReader(); reader.onload=e=>{pendingScreenshots.push({file,dataUrl:e.target.result});renderScreenshotPreviews();parseScreenshots();}; reader.readAsDataURL(file); }); }
+function renderScreenshotPreviews(){ const preview=$("#screenshotPreview"); preview.classList.toggle("show",pendingScreenshots.length>0); preview.innerHTML=pendingScreenshots.map((s,i)=>{ const isPdf=s.file.name.toLowerCase().endsWith(".pdf"); const thumb=isPdf?`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a2236;color:#f0b429;font-size:11px;border-radius:4px;flex-direction:column;gap:4px"><span style="font-size:28px">📄</span><span>${s.file.name}</span></div>`:`<img src="${s.dataUrl}" alt="">`; return `<div class="screenshot-thumb">${thumb}<button class="rm" data-idx="${i}">✕</button></div>`; }).join(""); preview.querySelectorAll(".rm").forEach(btn=>btn.addEventListener("click",()=>{ pendingScreenshots.splice(parseInt(btn.dataset.idx),1); renderScreenshotPreviews(); if(!pendingScreenshots.length){$("#parseStatus").innerHTML="";$("#parsedResults").classList.remove("show");$("#screenshotFooter").style.display="none";parsedCards=[];} })); }
+
+async function parseScreenshots(){
+  if(!pendingScreenshots.length) return;
+  const status=$("#parseStatus");
+  status.innerHTML=`<span class="spinner"></span> Analyzing with AI…`; parsedCards=[]; $("#parsedResults").classList.remove("show"); $("#screenshotFooter").style.display="none";
+  try {
+    const imageBlocks=await Promise.all(pendingScreenshots.map(async s=>{ const base64=s.dataUrl.split(",")[1]; const isPdf=s.file.name.toLowerCase().endsWith(".pdf"); if(isPdf) return{type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}}; return{type:"image",source:{type:"base64",media_type:s.file.type||"image/jpeg",data:base64}}; }));
+    const invList=ssMode==="update"?(STATE.inventory||[]).map(i=>({row:i.__row,name:i["Card Name"]||"",set:i["Set / Product"]||"",game:i["Game"]||"",grade:i["Grade"]||""})):null;
+    const prompt=ssMode==="update"?`Analyze trading card screenshots to UPDATE existing inventory. Current inventory: ${JSON.stringify(invList)}. Return ONLY a JSON array with keys: "matchedRow"(int or null),"matchConfidence"("high"/"medium"/"low"),"CardName","Game","SetProduct","CardID","Language","Variant","Rarity","Condition","Grade","CostDollar","MarketDollar". Use null for unknowns.`:`Analyze trading card inventory screenshots. Return ONLY a JSON array with keys: "CardName","Game","SetProduct","CardID","Language","Variant","Rarity","Condition","Grade","CostDollar","MarketDollar". Use null for unknowns. Default Language to "EN".`;
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","anthropic-version":"2023-06-01",...(pendingScreenshots.some(s=>s.file.name.toLowerCase().endsWith(".pdf"))?{"anthropic-beta":"pdfs-2024-09-25"}:{})},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:[...imageBlocks,{type:"text",text:prompt}]}]})});
+    const data=await res.json(); const text=(data.content||[]).map(b=>b.text||"").join(""); parsedCards=JSON.parse(text.replace(/```json|```/gi,"").trim()); if(!Array.isArray(parsedCards)) parsedCards=[parsedCards];
+    status.innerHTML=`<span style="color:var(--green)">✓</span> Found ${parsedCards.length} card${parsedCards.length!==1?"s":""}. Review below.`;
+    renderParsedCards(); $("#screenshotFooter").style.display="flex";
+  } catch(err){ status.innerHTML=`<span style="color:var(--red)">⚠ Could not parse.</span> Use Manual Entry.`; console.error(err); }
+}
+
+function renderParsedCards(){ const c=$("#parsedResults"); c.classList.add("show"); const langOpts=["EN","JP","KR","DE","FR","ES","IT","PT"]; const variantOpts=["Normal","Holofoil","Reverse Holo","Full Art","Special Art Rare","Ultra Rare","Secret Rare","Art Rare"]; const rarityOpts=["Common","Uncommon","Rare","Holo Rare","Art Rare","Special Art Rare","Ultra Rare","Secret Rare","Promo"]; const condOpts=["Mint","Near Mint","Lightly Played","Moderately Played","Heavily Played","Damaged"]; const gameOpts=["Pokémon","MTG","One Piece","Yu-Gi-Oh!","Lorcana","Sports Card","Other"]; function sel(opts,val,key,idx){const all=(val&&!opts.includes(val))?[val,...opts]:opts;return `<select data-idx="${idx}" data-key="${key}"><option value="">—</option>${all.map(o=>`<option value="${o}" ${val===o?"selected":""}>${o}</option>`).join("")}</select>`;} function inp(val,key,idx,type="text",ph=""){return `<input type="${type}" value="${val!=null?val:""}" data-idx="${idx}" data-key="${key}" placeholder="${ph}" step="${type==="number"?"0.01":""}">`;} c.innerHTML=parsedCards.map((card,idx)=>`<div class="parsed-card"><div class="parsed-title">Card ${idx+1}${card.CardName?` — ${card.CardName}`:""}</div><div class="parsed-grid"><div class="pf"><span class="lbl">Card Name</span>${inp(card.CardName,"CardName",idx,"text","Card name")}</div><div class="pf"><span class="lbl">Game</span>${sel(gameOpts,card.Game,"Game",idx)}</div><div class="pf"><span class="lbl">SET</span>${inp(card.SetProduct,"SetProduct",idx)}</div><div class="pf"><span class="lbl">Card #</span>${inp(card.CardID,"CardID",idx)}</div><div class="pf"><span class="lbl">Condition</span>${sel(condOpts,card.Condition,"Condition",idx)}</div><div class="pf"><span class="lbl">Grade</span>${inp(card.Grade,"Grade",idx)}</div><div class="pf"><span class="lbl">Language</span>${sel(langOpts,card.Language||"EN","Language",idx)}</div><div class="pf"><span class="lbl">Variant</span>${sel(variantOpts,card.Variant,"Variant",idx)}</div><div class="pf"><span class="lbl">Rarity</span>${sel(rarityOpts,card.Rarity,"Rarity",idx)}</div><div class="pf"><span class="lbl">Cost ($)</span>${inp(card.CostDollar,"CostDollar",idx,"number","0.00")}</div><div class="pf"><span class="lbl">Market ($)</span>${inp(card.MarketDollar,"MarketDollar",idx,"number","0.00")}</div><div class="pf"><span class="lbl">Date Acquired</span><input type="month" data-idx="${idx}" data-key="DateAcquired" value=""><button class="childhood-toggle" data-idx="${idx}" type="button">📦 Mark as Childhood</button></div></div></div>`).join(""); c.querySelectorAll("input,select").forEach(el=>el.addEventListener("change",()=>{const idx=parseInt(el.dataset.idx);const key=el.dataset.key;parsedCards[idx][key]=el.type==="number"?(el.value===""?null:parseFloat(el.value)):el.value;})); c.querySelectorAll(".childhood-toggle").forEach(btn=>btn.addEventListener("click",()=>{const idx=parseInt(btn.dataset.idx);parsedCards[idx]._childhood=!parsedCards[idx]._childhood;btn.classList.toggle("active",parsedCards[idx]._childhood);btn.textContent=parsedCards[idx]._childhood?"📦 ✓ Childhood":"📦 Mark as Childhood";const m=btn.previousElementSibling;m.classList.toggle("childhood-active",parsedCards[idx]._childhood);if(parsedCards[idx]._childhood){m.value="";m.disabled=true;}else m.disabled=false;})); }
+
+$("#addParsedBtn").addEventListener("click",()=>{ parsedCards.forEach(card=>addInventoryItem({"Card Name":card.CardName||"","Game":card.Game||"","Set / Product":card.SetProduct||"","Card # / ID":card.CardID||"","Condition":card.Condition||"","Grade":card.Grade||"","Language":card.Language||"","Variant":card.Variant||"","Rarity":card.Rarity||"","Cost ($)":card.CostDollar!=null?Number(card.CostDollar):null,"Market ($)":card.MarketDollar!=null?Number(card.MarketDollar):null,"Date Acquired":card._childhood?CHILDHOOD_SENTINEL:(card.DateAcquired?new Date(card.DateAcquired+"-01"):null)})); closeAddModal(); resetScreenshotPane(); });
+$("#clearScreenshots").addEventListener("click",resetScreenshotPane);
+function resetScreenshotPane(){ pendingScreenshots=[];parsedCards=[];$("#screenshotPreview").classList.remove("show");$("#screenshotPreview").innerHTML="";$("#parseStatus").innerHTML="";$("#parsedResults").classList.remove("show");$("#parsedResults").innerHTML="";$("#screenshotFooter").style.display="none"; }
+
+const mf_ChildhoodToggle=$("#mf_ChildhoodToggle"); let mf_isChildhood=false;
+mf_ChildhoodToggle.addEventListener("click",()=>{ mf_isChildhood=!mf_isChildhood; mf_ChildhoodToggle.classList.toggle("active",mf_isChildhood); mf_ChildhoodToggle.textContent=mf_isChildhood?"📦 ✓ Childhood (undo)":"📦 Mark as Childhood"; const d=$("#mf_Date"); d.classList.toggle("childhood-active",mf_isChildhood); d.disabled=mf_isChildhood; if(mf_isChildhood) d.value=""; });
+$("#clearManualBtn").addEventListener("click",()=>{ ["mf_CardName","mf_Set","mf_Cost","mf_Market","mf_Grade","mf_CardID","mf_Date"].forEach(id=>{const el=$("#"+id);el.value="";el.disabled=false;el.classList.remove("childhood-active");}); ["mf_Game","mf_Condition","mf_Language","mf_Variant","mf_Rarity"].forEach(id=>$("#"+id).value=""); mf_isChildhood=false; mf_ChildhoodToggle.classList.remove("active"); mf_ChildhoodToggle.textContent="📦 Mark as Childhood"; });
+$("#addManualBtn").addEventListener("click",()=>{ const cardName=$("#mf_CardName").value.trim(); if(!cardName){alert("Card Name is required.");return;} const rawDate=$("#mf_Date").value; addInventoryItem({"Card Name":cardName,"Game":$("#mf_Game").value||"","Set / Product":$("#mf_Set").value.trim()||"","Card # / ID":$("#mf_CardID").value.trim()||"","Condition":$("#mf_Condition").value||"","Grade":$("#mf_Grade").value.trim()||"","Language":$("#mf_Language").value||"","Variant":$("#mf_Variant").value||"","Rarity":$("#mf_Rarity").value||"","Cost ($)":$("#mf_Cost").value!==""?parseFloat($("#mf_Cost").value):null,"Market ($)":$("#mf_Market").value!==""?parseFloat($("#mf_Market").value):null,"Date Acquired":mf_isChildhood?CHILDHOOD_SENTINEL:(rawDate?new Date(rawDate+"-01T00:00:00"):null)}); closeAddModal(); });
+
+// Add Other Order modal
+if($("#addOtherOrderClose")) $("#addOtherOrderClose").addEventListener("click",()=>$("#addOtherOrderModal").classList.remove("open"));
+if($("#addOtherOrderCancel")) $("#addOtherOrderCancel").addEventListener("click",()=>$("#addOtherOrderModal").classList.remove("open"));
+if($("#addOtherOrderModal")) $("#addOtherOrderModal").addEventListener("click",e=>{if(e.target===$("#addOtherOrderModal"))$("#addOtherOrderModal").classList.remove("open");});
+if($("#addOtherOrderSave")) $("#addOtherOrderSave").addEventListener("click",()=>{
+  const itemName=$("#aoItemName")?.value.trim(); if(!itemName){$("#aoStatus").textContent="Item name required.";return;}
+  const cost=parseFloat($("#aoCost")?.value||"0")||0; const salePrice=parseFloat($("#aoSalePrice")?.value||"0")||0;
+  const date=$("#aoDate")?.value||""; const owner=$("#aoOwner")?.value||""; const notes=$("#aoNotes")?.value||"";
+  const ebayFees=parseFloat((salePrice*0.1325).toFixed(2));
+  const newOO={id:"oo_"+Date.now()+"_"+Math.random().toString(36).slice(2),itemName,cost,salePrice,ebayFees,date,owner,notes};
+  calcOO(newOO); STATE.otherOrders.push(newOO);
+  $("#addOtherOrderModal").classList.remove("open");
+  ["aoItemName","aoSalePrice","aoNotes"].forEach(id=>{const el=$("#"+id);if(el)el.value="";});
+  if($("#aoCost")) $("#aoCost").value="0";
+  renderOtherOrders(); refreshBudgets();
+  toast("Sale added. Push → Sheets to save.","success");
+});
+// "Add Sale" button in Orders tab
+const addSaleBtn=document.createElement("button");
+addSaleBtn.className="ghost"; addSaleBtn.textContent="➕ Add Sale"; addSaleBtn.style.marginLeft="0";
+addSaleBtn.addEventListener("click",()=>$("#addOtherOrderModal").classList.add("open"));
+document.querySelector(".filters[style*='margin:0;flex:1']")?.after(addSaleBtn);
+if($("#otherOrderSearch")) $("#otherOrderSearch").addEventListener("input",e=>{renderOtherOrders();});
+
+// ============================================================================
+// Event bindings
+// ============================================================================
+$$(".tab").forEach(t=>t.addEventListener("click",()=>showTab(t.dataset.tab)));
+$("#invSearch").addEventListener("input",e=>{invFilters.search=e.target.value.toLowerCase();renderInventory();});
+$$(".owner-filter-btn").forEach(btn=>btn.addEventListener("click",()=>{ invFilters.owner=invFilters.owner===btn.dataset.owner?"":btn.dataset.owner; renderInventory(); }));
+$("#orderSearch").addEventListener("input",e=>{orderFilters.search=e.target.value.toLowerCase();renderOrders();});
+$("#orderOwnerFilter").addEventListener("change",e=>{orderFilters.owner=e.target.value;renderOrders();});
+$("#orderStatusFilter").addEventListener("change",e=>{orderFilters.status=e.target.value;renderOrders();});
+$("#pushInvBtn").addEventListener("click",()=>pushToSheets("Inventory",STATE.inventory,STATE.invHeaders));
+$("#pushOrdersBtn").addEventListener("click",()=>pushToSheets("eBay Orders",STATE.orders,STATE.orderHeaders));
+$("#importOrdersBtn")?.addEventListener("click",()=>$("#importOrdersModal")?.classList.add("open"));
+$("#refreshBtn").addEventListener("click",()=>{ STATE.dirty.clear(); STATE.dirtyValues.clear(); loadFromSheets(); });
+
+// ============================================================================
+// Init
+// ============================================================================
+loadFromSheets();
+
+</script>
+</body>
+</html>
