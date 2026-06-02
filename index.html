@@ -1513,8 +1513,14 @@ function renderRLBudget() {
     .filter(o => { const d = o["Sale Date"] ? new Date(o["Sale Date"]) : null; return d && d >= TIM_BUDGET_CUTOFF; })
     .sort((a,b) => new Date(b["Sale Date"]) - new Date(a["Sale Date"]));
   const revenueIn = rlSales.reduce((s,o) => { const sh = computeShares(o["Owner"], num(o["Net Profit ($)"])); return s + sh.riverLegacy; }, 0);
+
+  // Only show inventory for River Legacy owner (not Tim/Vince)
   const rlInv = STATE.inventory
-    .filter(i => { const d = i["Date Acquired"]; if (!d || d === "__childhood__") return false; const date = d instanceof Date ? d : new Date(d); return date >= TIM_BUDGET_CUTOFF; })
+    .filter(i => {
+      if (i["Owner"] !== "River Legacy") return false;
+      const d = i["Date Acquired"]; if (!d || d === "__childhood__") return false;
+      const date = d instanceof Date ? d : new Date(d); return date >= TIM_BUDGET_CUTOFF;
+    })
     .sort((a,b) => { const da = a["Date Acquired"] instanceof Date ? a["Date Acquired"] : new Date(a["Date Acquired"]); const db = b["Date Acquired"] instanceof Date ? b["Date Acquired"] : new Date(b["Date Acquired"]); return db - da; });
   const moneyOut = rlInv.reduce((s,i) => s + num(i["Cost ($)"]), 0);
   const budget = revenueIn - moneyOut;
@@ -1522,15 +1528,26 @@ function renderRLBudget() {
   const totalEl = document.getElementById("rlBudgetTotal");
   if (!rowsEl || !totalEl) return;
   const mkDate = v => fmtDateMMYY(v) || "—";
-  const salesLines = rlSales.map(o => { const sh = computeShares(o["Owner"], num(o["Net Profit ($)"])); return `<div class="tbc-line-item"><span class="li-name">${escapeHtml((o["Item Title"]||"—").slice(0,50))}</span><span class="li-date">${mkDate(o["Sale Date"])} ${ownerBadge(o["Owner"])}</span><span class="li-amt" style="color:var(--green)">+${fmtMoney(sh.riverLegacy)}</span></div>`; }).join("");
-  const invLines = rlInv.map(i => `<div class="tbc-line-item"><span class="li-name">${escapeHtml((i["Card Name"]||"—").slice(0,50))}</span><span class="li-date">${mkDate(i["Date Acquired"])} ${ownerBadge(i["Owner"]||"")}</span><span class="li-amt" style="color:var(--amber)">-${fmtMoney(num(i["Cost ($)"]))}</span></div>`).join("");
+
+  // Only show lines that actually contribute to RL revenue (non-zero share).
+  // For Juan orders show a "Juan" label so it's clear it's commission; RL orders need no label.
+  const salesLines = rlSales
+    .map(o => { const sh = computeShares(o["Owner"], num(o["Net Profit ($)"])); return { o, share: sh.riverLegacy }; })
+    .filter(({ share }) => share !== 0)
+    .map(({ o, share }) => {
+      const label = o["Owner"] === "Juan" ? `<span class="badge juan" style="font-size:10px;padding:1px 7px;">Juan</span>` : "";
+      return `<div class="tbc-line-item"><span class="li-name">${escapeHtml((o["Item Title"]||"—").slice(0,50))}</span><span class="li-date">${mkDate(o["Sale Date"])} ${label}</span><span class="li-amt" style="color:var(--green)">+${fmtMoney(share)}</span></div>`;
+    }).join("");
+
+  const invLines = rlInv.map(i => `<div class="tbc-line-item"><span class="li-name">${escapeHtml((i["Card Name"]||"—").slice(0,50))}</span><span class="li-date">${mkDate(i["Date Acquired"])}</span><span class="li-amt" style="color:var(--amber)">-${fmtMoney(num(i["Cost ($)"]))}</span></div>`).join("");
+
   rowsEl.innerHTML = `
     <div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'">
       <span class="lbl">💰 RL Revenue Share</span><span class="val green">${fmtMoney(revenueIn)}</span><span class="chevron">▶</span>
     </div>
     <div class="tbc-line-items" style="max-height:9999px">${salesLines}</div>
     <div class="tbc-section-header open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'9999px':'0'">
-      <span class="lbl">🛒 All Inventory Purchases</span><span class="val" style="color:var(--amber)">${fmtMoney(moneyOut)}</span><span class="chevron">▶</span>
+      <span class="lbl">🛒 RL Inventory Purchases</span><span class="val" style="color:var(--amber)">${fmtMoney(moneyOut)}</span><span class="chevron">▶</span>
     </div>
     <div class="tbc-line-items" style="max-height:9999px">${invLines}</div>`;
   totalEl.textContent = fmtMoney(budget);
