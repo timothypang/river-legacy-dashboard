@@ -635,6 +635,7 @@
   </div>
   <div class="actions">
     <button id="refreshBtn" class="ghost">↻ Refresh</button>
+    <a href="https://drive.google.com/drive/folders/1ul9qX3FCpU-houCE5eimOdQ35r9a12qe" target="_blank" style="background:transparent;color:#9bb0c8;border:1px solid rgba(255,255,255,0.16);padding:8px 14px;border-radius:6px;font-weight:600;font-size:13px;text-decoration:none;transition:background 0.15s ease;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">📁 Open in Drive</a>
     <a href="https://github.com/timothypang/river-legacy-dashboard/upload/main" target="_blank" style="background:transparent;color:#9bb0c8;border:1px solid rgba(255,255,255,0.16);padding:8px 14px;border-radius:6px;font-weight:600;font-size:13px;text-decoration:none;transition:background 0.15s ease;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">↑ Deploy update</a>
   </div>
 </header>
@@ -695,7 +696,6 @@
       <button class="owner-filter-btn juan" data-owner="Juan" id="invFilterJuan"><span class="dot"></span>Juan</button>
       <span class="count" id="invCount"></span>
       <button id="pushInvBtn" class="ghost" disabled style="margin-left:auto">Push → Sheets</button>
-      <button id="addEntryBtn" class="ghost">➕ Add Entry</button>
     </div>
     <div class="scroll">
       <table>
@@ -720,7 +720,6 @@
         <select id="orderStatusFilter"><option value="">All statuses</option></select>
         <span class="count" id="orderCount"></span>
         <button id="pushOrdersBtn" class="ghost" disabled style="margin-left:auto">Push → Sheets</button>
-        <button id="importOrdersBtn" class="ghost" disabled>📥 Import eBay CSV</button>
       </div>
     </div>
     <div class="scroll" style="margin-bottom:6px;">
@@ -2221,11 +2220,6 @@ if($("#addOtherOrderSave")) $("#addOtherOrderSave").addEventListener("click",()=
   renderOtherOrders(); refreshBudgets();
   toast("Sale added. Push → Sheets to save.","success");
 });
-// "Add Sale" button in Orders tab
-const addSaleBtn=document.createElement("button");
-addSaleBtn.className="ghost"; addSaleBtn.textContent="➕ Add Sale"; addSaleBtn.style.marginLeft="0";
-addSaleBtn.addEventListener("click",()=>$("#addOtherOrderModal").classList.add("open"));
-document.querySelector(".filters[style*='margin:0;flex:1']")?.after(addSaleBtn);
 if($("#otherOrderSearch")) $("#otherOrderSearch").addEventListener("input",e=>{renderOtherOrders();});
 
 // ============================================================================
