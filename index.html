@@ -2160,7 +2160,7 @@ if($("#importApplyDefaultOwner")) $("#importApplyDefaultOwner").addEventListener
 // ============================================================================
 // Add Entry Modal
 // ============================================================================
-$("#addEntryBtn").addEventListener("click",()=>$("#addEntryModal").classList.add("open"));
+$("#addEntryBtn")?.addEventListener("click",()=>$("#addEntryModal").classList.add("open"));
 $("#addEntryClose").addEventListener("click",closeAddModal);
 $("#addEntryModal").addEventListener("click",e=>{if(e.target===$("#addEntryModal"))closeAddModal();});
 function closeAddModal(){ $("#addEntryModal").classList.remove("open"); }
