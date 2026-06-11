@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>River Legacy — Dashboard</title>
+<script>if(location.protocol==='file:'){location.href='https://timothypang.github.io/river-legacy-dashboard';}</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 
@@ -634,9 +635,7 @@
   </div>
   <div class="actions">
     <button id="refreshBtn" class="ghost">↻ Refresh</button>
-    <button id="pushInvBtn" class="ghost" disabled>Push Inventory → Sheets</button>
-    <button id="pushOrdersBtn" class="ghost" disabled>Push Orders → Sheets</button>
-    <button id="importOrdersBtn" class="ghost" disabled>📥 Import eBay CSV</button>
+    <a href="https://github.com/timothypang/river-legacy-dashboard/upload/main" target="_blank" style="background:transparent;color:#9bb0c8;border:1px solid rgba(255,255,255,0.16);padding:8px 14px;border-radius:6px;font-weight:600;font-size:13px;text-decoration:none;transition:background 0.15s ease;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">↑ Deploy update</a>
   </div>
 </header>
 
