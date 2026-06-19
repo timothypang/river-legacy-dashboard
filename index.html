@@ -329,6 +329,54 @@
   .inv-detail-row .detail-item select option { background:var(--surface-2); color:var(--ink); }
   .inv-detail-row .detail-item select.dirty { border-color:var(--gold); background:rgba(240,180,41,0.08); font-weight:600; }
 
+  /* ── Tools Tab ─────────────────────────────────────────── */
+  .tools-label {
+    display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;
+    color:var(--muted); font-weight:600; margin-bottom:5px;
+  }
+  .tools-input {
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    color:var(--ink); padding:8px 10px; font-size:13px; font-family:inherit;
+    transition:border-color 0.15s ease; width:100%;
+  }
+  .tools-input:focus { border-color:var(--gold); outline:none; }
+  .tools-num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tools-result {
+    background:var(--surface-3); border:1px solid var(--border);
+    border-radius:8px; padding:16px;
+  }
+  .tools-result-title {
+    font-size:14px; font-weight:700; color:var(--ink); margin-bottom:14px;
+  }
+  .tools-result-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;
+  }
+  .tools-result-block {
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:8px; padding:14px; text-align:center;
+  }
+  .tools-result-grade { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  .tools-result-profit { font-size:26px; font-weight:700; color:var(--ink); margin-bottom:4px; font-variant-numeric:tabular-nums; }
+  .tools-result-profit.pos { color:var(--green); }
+  .tools-result-profit.neg { color:var(--red); }
+  .tools-result-sub { font-size:11px; color:var(--muted); }
+  .tools-verdict {
+    margin-top:12px; padding:10px 14px; border-radius:6px;
+    font-size:13px; font-weight:600; text-align:center;
+    background:rgba(255,255,255,0.04); border:1px solid var(--border);
+  }
+  .tools-verdict.go { background:rgba(34,197,94,0.1); border-color:var(--green); color:var(--green); }
+  .tools-verdict.no { background:rgba(248,113,113,0.1); border-color:var(--red); color:var(--red); }
+  .tools-verdict.maybe { background:rgba(251,191,36,0.1); border-color:var(--amber); color:var(--amber); }
+  .tools-mini-stat {
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:3px;
+  }
+  .tools-mini-label { font-size:10px; text-transform:uppercase; letter-spacing:0.4px; color:var(--muted); font-weight:600; }
+  .tools-mini-val { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .tools-mini-val.pos { color:var(--green); }
+  .tools-mini-val.neg { color:var(--red); }
+
   /* ── Add Entry Panel ─────────────────────────────────────── */
   .modal-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65);
@@ -644,6 +692,7 @@
   <button class="tab active" data-tab="overview">Overview</button>
   <button class="tab" data-tab="inventory">Inventory</button>
   <button class="tab" data-tab="orders">Orders</button>
+  <button class="tab" data-tab="tools">🃏 Tools</button>
 </nav>
 
 <main>
@@ -747,6 +796,149 @@
       </table>
     </div>
     <div id="otherOrdersEmpty" style="display:none;text-align:center;padding:32px 24px;color:var(--muted);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:8px;margin-bottom:8px;">No other orders yet.</div>
+  </div>
+
+  <!-- TOOLS TAB -->
+  <div id="tabTools" class="hidden">
+
+    <div class="grid-2" style="margin-bottom:20px;">
+
+      <!-- GRADING CALCULATOR -->
+      <section class="panel">
+        <h3>🎯 Grading Calculator — Should I Grade?</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px;">
+          <div style="grid-column:1/-1;">
+            <label class="tools-label">Card Name</label>
+            <input id="gc-name" class="tools-input" placeholder="e.g. Charizard ex SV White Flare" style="width:100%;">
+          </div>
+          <div>
+            <label class="tools-label">My Cost ($)</label>
+            <input id="gc-cost" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label class="tools-label">Grading Fee ($)</label>
+            <input id="gc-grade-fee" class="tools-input tools-num" type="number" min="0" step="0.01" value="25">
+          </div>
+          <div>
+            <label class="tools-label">PSA 9 Market Price ($)</label>
+            <input id="gc-psa9" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label class="tools-label">PSA 10 Market Price ($)</label>
+            <input id="gc-psa10" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+        <button onclick="calcGrading()" style="width:100%;margin-bottom:16px;">Calculate</button>
+        <div id="gc-result" class="tools-result hidden">
+          <div class="tools-result-title" id="gc-card-name"></div>
+          <div class="tools-result-grid">
+            <div class="tools-result-block" id="gc-psa9-block">
+              <div class="tools-result-grade">PSA 9</div>
+              <div class="tools-result-profit" id="gc-psa9-profit">—</div>
+              <div class="tools-result-sub" id="gc-psa9-sub"></div>
+            </div>
+            <div class="tools-result-block" id="gc-psa10-block">
+              <div class="tools-result-grade">PSA 10</div>
+              <div class="tools-result-profit" id="gc-psa10-profit">—</div>
+              <div class="tools-result-sub" id="gc-psa10-sub"></div>
+            </div>
+          </div>
+          <div class="tools-verdict" id="gc-verdict"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;">Based on 13.25% eBay FVF + $5.50 label. Grading fee editable above.</div>
+        </div>
+      </section>
+
+      <!-- PRICING TOOL -->
+      <section class="panel">
+        <h3>💰 Pricing Tool — What Should I List For?</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px;">
+          <div style="grid-column:1/-1;">
+            <label class="tools-label">Card Name</label>
+            <input id="pt-name" class="tools-input" placeholder="e.g. Luffy Treasure Boosters PSA 10" style="width:100%;">
+          </div>
+          <div>
+            <label class="tools-label">My Total Cost ($)</label>
+            <input id="pt-cost" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label class="tools-label">Grading Fee ($) <span style="color:var(--muted);font-weight:400;">(0 if raw)</span></label>
+            <input id="pt-grade-fee" class="tools-input tools-num" type="number" min="0" step="0.01" value="25">
+          </div>
+          <div>
+            <label class="tools-label">Market Price / Avg Comp ($)</label>
+            <input id="pt-market" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <label class="tools-label">Highest Recent Sale ($) <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+            <input id="pt-high" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+        <button onclick="calcPricing()" style="width:100%;margin-bottom:16px;">Calculate</button>
+        <div id="pt-result" class="tools-result hidden">
+          <div class="tools-result-title" id="pt-card-name"></div>
+          <div class="tools-result-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="tools-result-block">
+              <div class="tools-result-grade" style="color:var(--red);">Floor</div>
+              <div class="tools-result-profit" id="pt-floor" style="color:var(--red);">—</div>
+              <div class="tools-result-sub">Break even</div>
+            </div>
+            <div class="tools-result-block" style="border-color:var(--gold);">
+              <div class="tools-result-grade" style="color:var(--gold);">Market</div>
+              <div class="tools-result-profit" id="pt-market-out" style="color:var(--gold);">—</div>
+              <div class="tools-result-sub">Recommended</div>
+            </div>
+            <div class="tools-result-block" style="border-color:var(--green);">
+              <div class="tools-result-grade" style="color:var(--green);">Ceiling</div>
+              <div class="tools-result-profit" id="pt-ceiling" style="color:var(--green);">—</div>
+              <div class="tools-result-sub">Sit & wait</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;" id="pt-profit-row">
+            <div class="tools-mini-stat"><span class="tools-mini-label">Profit @ Floor</span><span id="pt-profit-floor" class="tools-mini-val">—</span></div>
+            <div class="tools-mini-stat"><span class="tools-mini-label">Profit @ Market</span><span id="pt-profit-market" class="tools-mini-val">—</span></div>
+            <div class="tools-mini-stat"><span class="tools-mini-label">Profit @ Ceiling</span><span id="pt-profit-ceiling" class="tools-mini-val">—</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;">Based on 13.25% eBay FVF + $5.50 label. Ceiling = highest recent sale if entered, else 125% of market.</div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- WATCHLIST -->
+    <section class="panel">
+      <h3>👀 Watchlist — Cards Worth Getting?</h3>
+      <div id="watchlist-loading" style="color:var(--muted);font-size:13px;padding:12px 0;">Loading watchlist from Google Sheets…</div>
+      <div id="watchlist-empty" class="hidden" style="color:var(--muted);font-size:13px;padding:12px 0;">
+        No watchlist entries yet. Add a <strong>Watchlist</strong> tab to your Google Sheet with columns:<br>
+        <code style="font-size:12px;background:var(--surface-2);padding:4px 8px;border-radius:4px;display:inline-block;margin-top:6px;">Pokemon | Set | Language | My Cost | PSA 9 Market | PSA 10 Market | Raw Market | Notes</code>
+      </div>
+      <div id="watchlist-error" class="hidden" style="color:var(--red);font-size:13px;padding:12px 0;"></div>
+      <div id="watchlist-wrap" class="hidden">
+        <div class="scroll">
+          <table id="watchlist-table">
+            <thead>
+              <tr>
+                <th>Pokemon</th>
+                <th>Set</th>
+                <th>Lang</th>
+                <th class="num">My Cost</th>
+                <th class="num">Raw Market</th>
+                <th class="num">PSA 9 Market</th>
+                <th class="num">PSA 10 Market</th>
+                <th class="num" style="color:var(--amber);">Profit @ PSA 9</th>
+                <th class="num" style="color:var(--green);">Profit @ PSA 10</th>
+                <th class="num">Floor Price</th>
+                <th>Verdict</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="watchlist-body"></tbody>
+          </table>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;">Profit = sale price after 13.25% eBay FVF − cost − $25 grading − $5.50 label. Update prices in the Watchlist sheet tab then reload.</div>
+      </div>
+    </section>
+
   </div>
 
   <div class="footer">River Legacy Card Store · v6 · Live from Google Sheets</div>
@@ -1407,9 +1599,11 @@ function showTab(name) {
   $("#tabOverview").classList.toggle("hidden", name !== "overview");
   $("#tabInventory").classList.toggle("hidden", name !== "inventory");
   $("#tabOrders").classList.toggle("hidden", name !== "orders");
+  $("#tabTools").classList.toggle("hidden", name !== "tools");
   if (name === "overview") renderOverview();
   if (name === "inventory") renderInventory();
   if (name === "orders") renderOrders();
+  if (name === "tools") renderWatchlist();
 }
 
 // ============================================================================
@@ -2229,10 +2423,213 @@ $$(".owner-filter-btn").forEach(btn=>btn.addEventListener("click",()=>{ invFilte
 $("#orderSearch").addEventListener("input",e=>{orderFilters.search=e.target.value.toLowerCase();renderOrders();});
 $("#orderOwnerFilter").addEventListener("change",e=>{orderFilters.owner=e.target.value;renderOrders();});
 $("#orderStatusFilter").addEventListener("change",e=>{orderFilters.status=e.target.value;renderOrders();});
-$("#pushInvBtn").addEventListener("click",()=>pushToSheets("Inventory",STATE.inventory,STATE.invHeaders));
-$("#pushOrdersBtn").addEventListener("click",()=>pushToSheets("eBay Orders",STATE.orders,STATE.orderHeaders));
+$("#pushInvBtn")?.addEventListener("click",()=>pushToSheets("Inventory",STATE.inventory,STATE.invHeaders));
+$("#pushOrdersBtn")?.addEventListener("click",()=>pushToSheets("eBay Orders",STATE.orders,STATE.orderHeaders));
 $("#importOrdersBtn")?.addEventListener("click",()=>$("#importOrdersModal")?.classList.add("open"));
 $("#refreshBtn").addEventListener("click",()=>{ STATE.dirty.clear(); STATE.dirtyValues.clear(); loadFromSheets(); });
+
+// ============================================================================
+// Tools Tab — Grading Calculator
+// ============================================================================
+const EBAY_RATE = 0.1325;
+const LABEL_COST = 5.50;
+
+function gradingNetProfit(salePrice, cost, gradingFee) {
+  const net = salePrice * (1 - EBAY_RATE) - LABEL_COST - cost - gradingFee;
+  return net;
+}
+
+function fmtProfit(val) {
+  const sign = val >= 0 ? "+" : "";
+  return sign + "$" + Math.abs(val).toFixed(2);
+}
+
+function calcGrading() {
+  const name     = $("#gc-name").value.trim() || "Card";
+  const cost     = parseFloat($("#gc-cost").value) || 0;
+  const fee      = parseFloat($("#gc-grade-fee").value) || 25;
+  const psa9     = parseFloat($("#gc-psa9").value) || 0;
+  const psa10    = parseFloat($("#gc-psa10").value) || 0;
+
+  if (!psa9 && !psa10) { alert("Enter at least one PSA market price."); return; }
+
+  const p9  = gradingNetProfit(psa9,  cost, fee);
+  const p10 = gradingNetProfit(psa10, cost, fee);
+
+  $("#gc-card-name").textContent = name;
+
+  function setBlock(profitEl, subEl, blockEl, profit, market) {
+    profitEl.textContent = market ? fmtProfit(profit) : "—";
+    profitEl.className = "tools-result-profit" + (market ? (profit >= 0 ? " pos" : " neg") : "");
+    subEl.textContent = market ? `@ $${market.toFixed(2)} market` : "No price entered";
+    blockEl.style.opacity = market ? "1" : "0.45";
+  }
+
+  setBlock($("#gc-psa9-profit"),  $("#gc-psa9-sub"),  $("#gc-psa9-block"),  p9,  psa9);
+  setBlock($("#gc-psa10-profit"), $("#gc-psa10-sub"), $("#gc-psa10-block"), p10, psa10);
+
+  const verdict = $("#gc-verdict");
+  const best = psa10 ? p10 : p9;
+  const bestLabel = psa10 ? "PSA 10" : "PSA 9";
+  if (best >= 20) {
+    verdict.textContent = `✅ Grade it — strong upside at ${bestLabel} (+$${best.toFixed(2)})`;
+    verdict.className = "tools-verdict go";
+  } else if (best >= 0) {
+    verdict.textContent = `⚠️ Marginal — only +$${best.toFixed(2)} at ${bestLabel}. Grade if you're confident in the pop.`;
+    verdict.className = "tools-verdict maybe";
+  } else {
+    verdict.textContent = `❌ Don't grade — you'd lose $${Math.abs(best).toFixed(2)} even at ${bestLabel}.`;
+    verdict.className = "tools-verdict no";
+  }
+
+  $("#gc-result").classList.remove("hidden");
+}
+
+// ============================================================================
+// Tools Tab — Pricing Tool
+// ============================================================================
+function calcPricing() {
+  const name      = $("#pt-name").value.trim() || "Card";
+  const cost      = parseFloat($("#pt-cost").value) || 0;
+  const fee       = parseFloat($("#pt-grade-fee").value) || 0;
+  const market    = parseFloat($("#pt-market").value) || 0;
+  const highSale  = parseFloat($("#pt-high").value) || 0;
+
+  if (!market) { alert("Enter a market price / avg comp."); return; }
+
+  const totalCost = cost + fee + LABEL_COST;
+  const floor     = totalCost / (1 - EBAY_RATE);
+  const ceiling   = highSale > market ? highSale : market * 1.25;
+
+  function netProfit(listPrice) {
+    return listPrice * (1 - EBAY_RATE) - LABEL_COST - cost - fee;
+  }
+
+  $("#pt-card-name").textContent = name;
+  $("#pt-floor").textContent      = "$" + floor.toFixed(2);
+  $("#pt-market-out").textContent = "$" + market.toFixed(2);
+  $("#pt-ceiling").textContent    = "$" + ceiling.toFixed(2);
+
+  function setMini(el, val) {
+    el.textContent = fmtProfit(val);
+    el.className = "tools-mini-val" + (val >= 0 ? " pos" : " neg");
+  }
+  setMini($("#pt-profit-floor"),   netProfit(floor));
+  setMini($("#pt-profit-market"),  netProfit(market));
+  setMini($("#pt-profit-ceiling"), netProfit(ceiling));
+
+  $("#pt-result").classList.remove("hidden");
+}
+
+// ============================================================================
+// Tools Tab — Watchlist (reads from Google Sheet "Watchlist" tab)
+// ============================================================================
+let watchlistLoaded = false;
+
+function renderWatchlist() {
+  if (watchlistLoaded) return;
+  watchlistLoaded = true;
+
+  const url = sheetUrl("Watchlist");
+  fetch(url)
+    .then(r => r.text())
+    .then(text => {
+      // parse gviz CSV
+      const rows = text.trim().split("\n").map(r => {
+        const cols = []; let cur = ""; let inQ = false;
+        for (const ch of r) {
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === "," && !inQ) { cols.push(cur.trim()); cur = ""; }
+          else { cur += ch; }
+        }
+        cols.push(cur.trim());
+        return cols;
+      });
+
+      if (rows.length < 2) { showWatchlistEmpty(); return; }
+
+      const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,"").replace(/[^a-z0-9]/g,""));
+      const idx = k => headers.indexOf(k);
+
+      const iName  = idx("pokemon");
+      const iSet   = idx("set");
+      const iLang  = idx("language");
+      const iCost  = idx("mycost");
+      const iPsa9  = idx("psa9market");
+      const iPsa10 = idx("psa10market");
+      const iRaw   = idx("rawmarket");
+      const iNotes = idx("notes");
+
+      if (iName === -1) { showWatchlistEmpty(); return; }
+
+      const tbody = $("#watchlist-body");
+      tbody.innerHTML = "";
+      const data = rows.slice(1).filter(r => r[iName]);
+
+      if (!data.length) { showWatchlistEmpty(); return; }
+
+      const GRADE_FEE = 25;
+      data.forEach(r => {
+        const name  = r[iName]  || "—";
+        const set   = iSet  >= 0 ? (r[iSet]  || "—") : "—";
+        const lang  = iLang >= 0 ? (r[iLang] || "—") : "—";
+        const cost  = parseFloat(r[iCost])  || 0;
+        const psa9  = parseFloat(r[iPsa9])  || 0;
+        const psa10 = parseFloat(r[iPsa10]) || 0;
+        const raw   = parseFloat(r[iRaw])   || 0;
+        const notes = iNotes >= 0 ? (r[iNotes] || "") : "";
+
+        const p9  = psa9  ? gradingNetProfit(psa9,  cost, GRADE_FEE) : null;
+        const p10 = psa10 ? gradingNetProfit(psa10, cost, GRADE_FEE) : null;
+        const floor = cost > 0 ? (cost + GRADE_FEE + LABEL_COST) / (1 - EBAY_RATE) : null;
+
+        const best = p10 !== null ? p10 : p9;
+        let verdict = "—", vClass = "";
+        if (best !== null) {
+          if (best >= 20)      { verdict = "✅ Grade it";  vClass = "color:var(--green)"; }
+          else if (best >= 0)  { verdict = "⚠️ Marginal";  vClass = "color:var(--amber)"; }
+          else                  { verdict = "❌ Pass";      vClass = "color:var(--red)"; }
+        }
+
+        function profitCell(val) {
+          if (val === null) return '<td class="num" style="color:var(--muted);">—</td>';
+          const cls = val >= 0 ? "pos" : "neg";
+          return `<td class="num ${cls}">${fmtProfit(val)}</td>`;
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${name}</strong></td>
+          <td style="color:var(--muted);font-size:11px;">${set}</td>
+          <td><span style="font-size:11px;background:var(--surface-2);padding:2px 7px;border-radius:999px;border:1px solid var(--border);">${lang}</span></td>
+          <td class="num">${cost ? "$"+cost.toFixed(2) : "—"}</td>
+          <td class="num">${raw  ? "$"+raw.toFixed(2)  : "—"}</td>
+          <td class="num">${psa9 ? "$"+psa9.toFixed(2) : "—"}</td>
+          <td class="num">${psa10? "$"+psa10.toFixed(2): "—"}</td>
+          ${profitCell(p9)}
+          ${profitCell(p10)}
+          <td class="num">${floor ? "$"+floor.toFixed(2) : "—"}</td>
+          <td style="${vClass};font-weight:600;font-size:12px;">${verdict}</td>
+          <td style="color:var(--muted);font-size:11px;white-space:normal;max-width:200px;">${notes}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      $("#watchlist-loading").classList.add("hidden");
+      $("#watchlist-wrap").classList.remove("hidden");
+    })
+    .catch(() => {
+      $("#watchlist-loading").classList.add("hidden");
+      const errEl = $("#watchlist-error");
+      errEl.textContent = "Couldn't load Watchlist tab. Make sure you have a \"Watchlist\" tab in your Google Sheet with the right columns.";
+      errEl.classList.remove("hidden");
+    });
+}
+
+function showWatchlistEmpty() {
+  $("#watchlist-loading").classList.add("hidden");
+  $("#watchlist-empty").classList.remove("hidden");
+}
 
 // ============================================================================
 // Init
