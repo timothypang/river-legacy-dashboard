@@ -803,10 +803,42 @@
 
     <section class="panel">
       <h3>🔎 1. Look up a card</h3>
+
+      <div id="pcRecentWrap" class="hidden" style="margin-bottom:16px;">
+        <div class="tools-label" style="margin-bottom:6px;">Recent searches — click to refill</div>
+        <div id="pcRecentList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+
       <div class="grid-2">
         <div>
-          <label class="tools-label">Card name / set</label>
-          <input id="pcQuery" class="tools-input" placeholder="e.g. Mega Dragonite ex 105/086">
+          <label class="tools-label">Pokémon name</label>
+          <input id="pcName" class="tools-input" placeholder="e.g. Mega Dragonite ex">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="tools-label">Card #</label>
+            <input id="pcCardNum" class="tools-input" placeholder="e.g. 105/086">
+          </div>
+          <div>
+            <label class="tools-label">Set</label>
+            <input id="pcSet" class="tools-input" placeholder="e.g. Scarlet & Violet">
+          </div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="tools-label">Language</label>
+            <select id="pcLanguage" class="tools-input">
+              <option value="">English</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Other">Other…</option>
+            </select>
+          </div>
+          <div id="pcLanguageOtherWrap" class="hidden">
+            <label class="tools-label">Language (other)</label>
+            <input id="pcLanguageOther" class="tools-input" placeholder="e.g. Korean">
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
@@ -1552,6 +1584,7 @@ function showTab(name) {
   if (name === "overview") renderOverview();
   if (name === "inventory") renderInventory();
   if (name === "orders") renderOrders();
+  if (name === "pricecheck") pcLoadRecentSearches();
 }
 
 // ============================================================================
@@ -2490,6 +2523,21 @@ function recalcPsaRow(row) {
 // CLAUDE.md System Decisions (2026-07-10).
 // ============================================================================
 let PC_COMPS = [];  // last-parsed comps: {title, price, date, included}
+let pcRecentLoaded = false;
+
+function pcLanguageValue() {
+  const sel = $("#pcLanguage").value;
+  if (sel === "Other") return $("#pcLanguageOther").value.trim();
+  return sel; // "" (English, no keyword needed) or "Japanese"
+}
+
+function pcComposeQuery() {
+  const name = $("#pcName").value.trim();
+  const cardNum = $("#pcCardNum").value.trim();
+  const set = $("#pcSet").value.trim();
+  const lang = pcLanguageValue();
+  return [name, set, cardNum, lang].filter(Boolean).join(" ");
+}
 
 function buildEbaySearchUrl(query, grade, company, useDcat) {
   const kw = [query, grade ? `${company} ${grade}` : ""].filter(Boolean).join(" ");
@@ -2603,16 +2651,20 @@ function pcCompute() {
   const capped = pcCapComps(windowed, 25);
   const stats = pcTrimmedMedian(capped.map(c => c.price));
 
-  $("#pcResultTitle").textContent = $("#pcQuery").value || "Card";
+  $("#pcResultTitle").textContent = pcComposeQuery() || "Card";
   $("#pcTruePrice").textContent = stats ? fmtMoney(stats.median) : "—";
   $("#pcRange").textContent = stats ? `Range ${fmtMoney(stats.low)} – ${fmtMoney(stats.high)}` : "";
   $("#pcCompCount").textContent = String(stats ? stats.count : 0);
   $("#pcWindow").textContent = windowDays >= 999999 ? "All available (widened from 30 days)" : `Last ${windowDays} days`;
 }
 
+$("#pcLanguage")?.addEventListener("change", () => {
+  $("#pcLanguageOtherWrap").classList.toggle("hidden", $("#pcLanguage").value !== "Other");
+});
+
 $("#pcBuildUrl")?.addEventListener("click", () => {
-  const query = $("#pcQuery").value.trim();
-  if (!query) { toast("Enter a card name/set first", "error"); return; }
+  if (!$("#pcName").value.trim()) { toast("Enter a Pokémon name first", "error"); return; }
+  const query = pcComposeQuery();
   const grade = $("#pcGrade").value;
   const company = $("#pcCompany").value;
   const useDcat = $("#pcUseDcat").checked;
@@ -2656,16 +2708,86 @@ $("#pcPushBtn")?.addEventListener("click", () => {
   const stats = pcTrimmedMedian(pcCapComps(windowed, 25).map(c => c.price));
   if (!stats) { toast("Nothing to compute", "error"); return; }
 
+  const cardName = [$("#pcName").value.trim(), $("#pcCardNum").value.trim()].filter(Boolean).join(" ");
   const row = {
     "Date": new Date(),
-    "Card": $("#pcQuery").value.trim(),
-    "Set": "",
+    "Card": cardName,
+    "Set": $("#pcSet").value.trim(),
     "Grade": $("#pcGrade").value ? `${$("#pcCompany").value} ${$("#pcGrade").value}` : "Raw",
     "Price": stats.median,
     "Comp Count": stats.count,
   };
   pushToSheets("Price History", [row], ["Date", "Card", "Set", "Grade", "Price", "Comp Count"]);
 });
+
+// ----------------------------------------------------------------------------
+// Recent Searches — reads last 5 rows from the "Price History" sheet tab
+// ----------------------------------------------------------------------------
+function pcParseCsv(text) {
+  return text.trim().split("\n").map(r => {
+    const cols = []; let cur = ""; let inQ = false;
+    for (const ch of r) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === "," && !inQ) { cols.push(cur.trim()); cur = ""; }
+      else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function pcLoadRecentSearches(force) {
+  if (pcRecentLoaded && !force) return;
+  pcRecentLoaded = true;
+
+  fetch(sheetUrl("Price History"))
+    .then(r => r.text())
+    .then(text => {
+      const rows = pcParseCsv(text);
+      if (rows.length < 2) return; // header only or empty — leave hidden
+
+      const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,"").replace(/[^a-z0-9]/g,""));
+      const idx = k => headers.indexOf(k);
+      const iCard  = idx("card");
+      const iSet   = idx("set");
+      const iGrade = idx("grade");
+      const iPrice = idx("price");
+      if (iCard === -1) return;
+
+      const data = rows.slice(1).filter(r => r[iCard]).slice(-5).reverse();
+      if (!data.length) return;
+
+      const list = $("#pcRecentList");
+      list.innerHTML = data.map((r, i) => {
+        const card  = r[iCard]  || "—";
+        const set   = iSet   >= 0 ? (r[iSet]   || "") : "";
+        const grade = iGrade >= 0 ? (r[iGrade] || "") : "";
+        const price = iPrice >= 0 ? parseFloat(r[iPrice]) : null;
+        const label = [card, price ? fmtMoney(price) : ""].filter(Boolean).join(" · ");
+        return `<button type="button" class="pc-recent-chip" data-idx="${i}" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;">${escapeHtml(label)}</button>`;
+      }).join("");
+
+      $$(".pc-recent-chip").forEach((btn, i) => {
+        const r = data[i];
+        btn.addEventListener("click", () => {
+          $("#pcName").value = iCard >= 0 ? (r[iCard] || "") : "";
+          $("#pcCardNum").value = "";
+          $("#pcSet").value = iSet >= 0 ? (r[iSet] || "") : "";
+          const grade = iGrade >= 0 ? (r[iGrade] || "") : "";
+          if (/^raw$/i.test(grade)) {
+            $("#pcGrade").value = "";
+          } else {
+            const m = grade.match(/^(PSA|BGS|CGC)\s*(\d+)/i);
+            if (m) { $("#pcCompany").value = m[1].toUpperCase(); $("#pcGrade").value = m[2]; }
+          }
+          toast("Form filled from recent search — adjust as needed", "success");
+        });
+      });
+
+      $("#pcRecentWrap").classList.remove("hidden");
+    })
+    .catch(() => { /* Price History tab may not exist yet — fail silently, keep wrap hidden */ });
+}
 
 // ============================================================================
 // Init
