@@ -693,6 +693,7 @@
   <button class="tab" data-tab="inventory">Inventory</button>
   <button class="tab" data-tab="orders">Orders</button>
   <button class="tab" data-tab="tools">🃏 Tools</button>
+  <button class="tab" data-tab="pricecheck">💰 Price Check</button>
 </nav>
 
 <main>
@@ -801,109 +802,6 @@
   <!-- TOOLS TAB -->
   <div id="tabTools" class="hidden">
 
-    <div class="grid-2" style="margin-bottom:20px;">
-
-      <!-- GRADING CALCULATOR -->
-      <section class="panel">
-        <h3>🎯 Grading Calculator — Should I Grade?</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px;">
-          <div style="grid-column:1/-1;">
-            <label class="tools-label">Card Name</label>
-            <input id="gc-name" class="tools-input" placeholder="e.g. Charizard ex SV White Flare" style="width:100%;">
-          </div>
-          <div>
-            <label class="tools-label">My Cost ($)</label>
-            <input id="gc-cost" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
-          </div>
-          <div>
-            <label class="tools-label">Grading Fee ($)</label>
-            <input id="gc-grade-fee" class="tools-input tools-num" type="number" min="0" step="0.01" value="25">
-          </div>
-          <div>
-            <label class="tools-label">PSA 9 Market Price ($)</label>
-            <input id="gc-psa9" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
-          </div>
-          <div>
-            <label class="tools-label">PSA 10 Market Price ($)</label>
-            <input id="gc-psa10" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
-          </div>
-        </div>
-        <button onclick="calcGrading()" style="width:100%;margin-bottom:16px;">Calculate</button>
-        <div id="gc-result" class="tools-result hidden">
-          <div class="tools-result-title" id="gc-card-name"></div>
-          <div class="tools-result-grid">
-            <div class="tools-result-block" id="gc-psa9-block">
-              <div class="tools-result-grade">PSA 9</div>
-              <div class="tools-result-profit" id="gc-psa9-profit">—</div>
-              <div class="tools-result-sub" id="gc-psa9-sub"></div>
-            </div>
-            <div class="tools-result-block" id="gc-psa10-block">
-              <div class="tools-result-grade">PSA 10</div>
-              <div class="tools-result-profit" id="gc-psa10-profit">—</div>
-              <div class="tools-result-sub" id="gc-psa10-sub"></div>
-            </div>
-          </div>
-          <div class="tools-verdict" id="gc-verdict"></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:10px;">Based on 13.25% eBay FVF + $5.50 label. Grading fee editable above.</div>
-        </div>
-      </section>
-
-      <!-- PRICING TOOL -->
-      <section class="panel">
-        <h3>💰 Pricing Tool — What Should I List For?</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:16px;">
-          <div style="grid-column:1/-1;">
-            <label class="tools-label">Card Name</label>
-            <input id="pt-name" class="tools-input" placeholder="e.g. Luffy Treasure Boosters PSA 10" style="width:100%;">
-          </div>
-          <div>
-            <label class="tools-label">My Total Cost ($)</label>
-            <input id="pt-cost" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
-          </div>
-          <div>
-            <label class="tools-label">Grading Fee ($) <span style="color:var(--muted);font-weight:400;">(0 if raw)</span></label>
-            <input id="pt-grade-fee" class="tools-input tools-num" type="number" min="0" step="0.01" value="25">
-          </div>
-          <div>
-            <label class="tools-label">Market Price / Avg Comp ($)</label>
-            <input id="pt-market" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
-          </div>
-          <div>
-            <label class="tools-label">Highest Recent Sale ($) <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
-            <input id="pt-high" class="tools-input tools-num" type="number" min="0" step="0.01" placeholder="0.00">
-          </div>
-        </div>
-        <button onclick="calcPricing()" style="width:100%;margin-bottom:16px;">Calculate</button>
-        <div id="pt-result" class="tools-result hidden">
-          <div class="tools-result-title" id="pt-card-name"></div>
-          <div class="tools-result-grid" style="grid-template-columns:repeat(3,1fr);">
-            <div class="tools-result-block">
-              <div class="tools-result-grade" style="color:var(--red);">Floor</div>
-              <div class="tools-result-profit" id="pt-floor" style="color:var(--red);">—</div>
-              <div class="tools-result-sub">Break even</div>
-            </div>
-            <div class="tools-result-block" style="border-color:var(--gold);">
-              <div class="tools-result-grade" style="color:var(--gold);">Market</div>
-              <div class="tools-result-profit" id="pt-market-out" style="color:var(--gold);">—</div>
-              <div class="tools-result-sub">Recommended</div>
-            </div>
-            <div class="tools-result-block" style="border-color:var(--green);">
-              <div class="tools-result-grade" style="color:var(--green);">Ceiling</div>
-              <div class="tools-result-profit" id="pt-ceiling" style="color:var(--green);">—</div>
-              <div class="tools-result-sub">Sit & wait</div>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;" id="pt-profit-row">
-            <div class="tools-mini-stat"><span class="tools-mini-label">Profit @ Floor</span><span id="pt-profit-floor" class="tools-mini-val">—</span></div>
-            <div class="tools-mini-stat"><span class="tools-mini-label">Profit @ Market</span><span id="pt-profit-market" class="tools-mini-val">—</span></div>
-            <div class="tools-mini-stat"><span class="tools-mini-label">Profit @ Ceiling</span><span id="pt-profit-ceiling" class="tools-mini-val">—</span></div>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:10px;">Based on 13.25% eBay FVF + $5.50 label. Ceiling = highest recent sale if entered, else 125% of market.</div>
-        </div>
-      </section>
-
-    </div>
-
     <!-- WATCHLIST -->
     <section class="panel">
       <h3>👀 Watchlist — Cards Worth Getting?</h3>
@@ -936,6 +834,98 @@
           </table>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:8px;">Profit = sale price after 13.25% eBay FVF − cost − $25 grading − $5.50 label. Update prices in the Watchlist sheet tab then reload.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- PRICE CHECK TAB -->
+  <div id="tabPriceCheck" class="hidden">
+
+    <section class="panel">
+      <h3>🔎 1. Look up a card</h3>
+      <div class="grid-2">
+        <div>
+          <label class="tools-label">Card name / set</label>
+          <input id="pcQuery" class="tools-input" placeholder="e.g. Mega Dragonite ex 105/086">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="tools-label">Grade</label>
+            <select id="pcGrade" class="tools-input">
+              <option value="">Raw / ungraded</option>
+              <option value="10">10 (Gem Mint)</option>
+              <option value="9">9 (Mint)</option>
+              <option value="8">8 (NM-Mint)</option>
+              <option value="7">7 (Near Mint)</option>
+            </select>
+          </div>
+          <div>
+            <label class="tools-label">Company</label>
+            <select id="pcCompany" class="tools-input">
+              <option value="PSA">PSA</option>
+              <option value="BGS">BGS</option>
+              <option value="CGC">CGC</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+        <input type="checkbox" id="pcUseDcat" checked style="width:auto;">
+        <label for="pcUseDcat" style="font-size:12px;color:var(--muted);">Add structural Grade filter (<code style="font-size:11px;">&amp;Grade=X&amp;_dcat=183454</code>) — uncheck and rely on keywords only if this returns zero results</label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;">
+        <button id="pcBuildUrl">🔗 Build eBay sold-search URL</button>
+        <a id="pcSearchLink" href="#" target="_blank" class="hidden" style="color:var(--gold);font-size:12.5px;word-break:break-all;">Open eBay search ↗</a>
+      </div>
+      <div class="info-bar" style="margin-top:14px;margin-bottom:0;">
+        On the eBay results page: sort by <strong>Ended Recently</strong> (eBay's own sort dropdown — sort codes drift, easier to click it than hardcode it), select all sold listings' text, and paste below. Screenshots don't work here — this path is pure text, no AI call.
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>📋 2. Paste sold results</h3>
+      <textarea id="pcPaste" class="tools-input" rows="8" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;resize:vertical;" placeholder="Paste the selected text from the eBay sold-listings page here…"></textarea>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button id="pcParseBtn">📐 Parse &amp; compute true price</button>
+        <button id="pcClearBtn" class="ghost">Clear</button>
+      </div>
+      <div id="pcParseStatus" class="parse-status"></div>
+    </section>
+
+    <section class="panel hidden" id="pcResultsPanel">
+      <h3>💵 3. Result</h3>
+      <div class="tools-result">
+        <div class="tools-result-title" id="pcResultTitle">—</div>
+        <div class="tools-result-grid">
+          <div class="tools-result-block">
+            <div class="tools-result-grade">True Price (trimmed median)</div>
+            <div class="tools-result-profit" id="pcTruePrice">—</div>
+            <div class="tools-result-sub" id="pcRange">—</div>
+          </div>
+          <div class="tools-result-block">
+            <div class="tools-result-grade">Comps Used</div>
+            <div class="tools-result-profit" id="pcCompCount">—</div>
+            <div class="tools-result-sub" id="pcWindow">—</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div class="tools-label" style="margin-bottom:8px;">Comps — uncheck any that don't belong (wrong card, wrong grade/company, outlier) and recompute</div>
+        <div class="scroll" style="max-height:320px;">
+          <table>
+            <thead><tr><th style="width:32px;"></th><th>Title</th><th>Date</th><th class="num">Price</th></tr></thead>
+            <tbody id="pcCompsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button id="pcRecalcBtn" class="ghost">↻ Recompute from checked comps</button>
+        <button id="pcPushBtn">📤 Log to Price History → Push to Sheets</button>
+      </div>
+      <div class="info-bar" style="margin-top:14px;margin-bottom:0;">
+        No <strong>Price History</strong> tab yet? Add one to your Google Sheet with columns:<br>
+        <code style="font-size:12px;background:var(--surface-2);padding:4px 8px;border-radius:4px;display:inline-block;margin-top:6px;">Date | Card | Set | Grade | Price | Comp Count</code>
       </div>
     </section>
 
@@ -1280,7 +1270,7 @@ const INV_COL_ORDER = [
   "__forsale","Type","Card Name","SET","Cost ($)","Market ($)","__gain",
   "Condition","Grade","Date Acquired",
 ];
-const INV_DETAIL_COLS = ["Card # / ID", "Language", "Variant", "Rarity"];
+const INV_DETAIL_COLS = [];
 const INV_DETAIL_OPTIONS = {
   "Language":  ["EN","JP","KR","DE","FR","ES","IT","PT"],
   "Variant":   ["Normal","Holofoil","Reverse Holo","Full Art","Special Art Rare","Ultra Rare","Secret Rare","Art Rare"],
@@ -1600,6 +1590,7 @@ function showTab(name) {
   $("#tabInventory").classList.toggle("hidden", name !== "inventory");
   $("#tabOrders").classList.toggle("hidden", name !== "orders");
   $("#tabTools").classList.toggle("hidden", name !== "tools");
+  $("#tabPriceCheck").classList.toggle("hidden", name !== "pricecheck");
   if (name === "overview") renderOverview();
   if (name === "inventory") renderInventory();
   if (name === "orders") renderOrders();
@@ -1750,7 +1741,7 @@ function renderRLBudget() {
 // Inventory tab
 // ============================================================================
 const CHILDHOOD_SENTINEL = "__childhood__";
-const INV_EDITABLE_NUM = new Set(["Cost ($)","Market ($)"]);
+const INV_EDITABLE_NUM = new Set(["Cost ($)","Market ($)","PSA 9 Mkt ($)","PSA 10 Mkt ($)"]);
 let invFilters = { search: "", owner: "" };
 let invSort = { column: null, direction: "asc" };
 
@@ -1883,7 +1874,44 @@ function renderInventory() {
       }
       return `<div class="detail-item"><span class="lbl">${h}</span>${control}</div>`;
     }).join("");
-    const detailRow = `<tr class="inv-detail-row detail-row ${isExpanded?"show":""}" data-row="${item.__row}"><td colspan="${colSpan}"><div class="detail-grid">${detailItems}</div></td></tr>`;
+    const cost     = item["Cost ($)"] != null ? Number(item["Cost ($)"])       : null;
+    const psa9v    = item["PSA 9 Mkt ($)"]  != null ? Number(item["PSA 9 Mkt ($)"])  : "";
+    const psa10v   = item["PSA 10 Mkt ($)"] != null ? Number(item["PSA 10 Mkt ($)"]) : "";
+    const inpStyle = `padding:4px 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--surface-2);color:var(--ink);width:100%;outline:none;text-align:right;font-variant-numeric:tabular-nums;`;
+    const gradingSection = `
+      <div style="grid-column:1/-1;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft);">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--gold);font-weight:700;margin-bottom:8px;">🎯 Grading Analysis</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;">
+          <div class="detail-item">
+            <span class="lbl">PSA 9 Mkt ($)</span>
+            <input type="number" step="0.01" min="0" placeholder="0.00" value="${psa9v}"
+              data-row="${item.__row}" data-field="PSA 9 Mkt ($)" class="psa-mkt-inp" style="${inpStyle}">
+          </div>
+          <div class="detail-item">
+            <span class="lbl">PSA 10 Mkt ($)</span>
+            <input type="number" step="0.01" min="0" placeholder="0.00" value="${psa10v}"
+              data-row="${item.__row}" data-field="PSA 10 Mkt ($)" class="psa-mkt-inp" style="${inpStyle}">
+          </div>
+          <div class="detail-item">
+            <span class="lbl">Profit @ PSA 9</span>
+            <span id="psacalc-9-${item.__row}" style="font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;">—</span>
+          </div>
+          <div class="detail-item">
+            <span class="lbl">Profit @ PSA 10</span>
+            <span id="psacalc-10-${item.__row}" style="font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;">—</span>
+          </div>
+          <div class="detail-item">
+            <span class="lbl">Grade?</span>
+            <span id="psacalc-v-${item.__row}" style="font-weight:700;font-size:12px;">—</span>
+          </div>
+          <div class="detail-item">
+            <span class="lbl">Floor Price</span>
+            <span id="psacalc-f-${item.__row}" style="font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);">—</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">13.25% eBay FVF + $5.50 label + $25 grading fee. PSA prices not saved unless you add columns to your sheet.</div>
+      </div>`;
+    const detailRow = `<tr class="inv-detail-row detail-row ${isExpanded?"show":""}" data-row="${item.__row}"><td colspan="${colSpan}"><div class="detail-grid">${detailItems}${gradingSection}</div></td></tr>`;
     return mainRow + detailRow;
   }).join("");
 
@@ -1930,6 +1958,29 @@ function renderInventory() {
     main.classList.toggle("expanded",willExpand);
     if(detail&&detail.classList.contains("detail-row")) detail.classList.toggle("show",willExpand);
   }));
+  // PSA grading inputs in expand rows
+  $$("#invBody .psa-mkt-inp").forEach(inp => {
+    const recalc = () => {
+      const row  = parseInt(inp.dataset.row);
+      const item = STATE.inventory.find(i => i.__row === row);
+      // Update item in memory so sibling input can read it
+      if (item) item[inp.dataset.field] = inp.value === "" ? null : parseFloat(inp.value);
+      // If column exists in sheet, mark dirty for Push→Sheets
+      if (item && STATE.invHeaders.includes(inp.dataset.field)) {
+        const colIdx = STATE.invHeaders.indexOf(inp.dataset.field) + 1;
+        const val = inp.value === "" ? "" : parseFloat(inp.value);
+        markDirty(INV_SHEET, row, colIdx, val);
+        inp.style.borderColor = "var(--gold)";
+      }
+      recalcPsaRow(row);
+    };
+    inp.addEventListener("input",  recalc);
+    inp.addEventListener("change", recalc);
+  });
+  // Initial calc for any rows that already have PSA values
+  STATE.inventory.forEach(item => {
+    if (item["PSA 9 Mkt ($)"] != null || item["PSA 10 Mkt ($)"] != null) recalcPsaRow(item.__row);
+  });
   bindColResize("#invHead","#invBody");
 }
 
@@ -2444,81 +2495,35 @@ function fmtProfit(val) {
   return sign + "$" + Math.abs(val).toFixed(2);
 }
 
-function calcGrading() {
-  const name     = $("#gc-name").value.trim() || "Card";
-  const cost     = parseFloat($("#gc-cost").value) || 0;
-  const fee      = parseFloat($("#gc-grade-fee").value) || 25;
-  const psa9     = parseFloat($("#gc-psa9").value) || 0;
-  const psa10    = parseFloat($("#gc-psa10").value) || 0;
+function recalcPsaRow(row) {
+  const item  = STATE.inventory.find(i => i.__row === row);
+  const cost  = item && item["Cost ($)"] != null ? Number(item["Cost ($)"]) : null;
+  const psa9  = item && item["PSA 9 Mkt ($)"]  != null ? Number(item["PSA 9 Mkt ($)"])  : null;
+  const psa10 = item && item["PSA 10 Mkt ($)"] != null ? Number(item["PSA 10 Mkt ($)"]) : null;
+  const GFEE  = 25;
 
-  if (!psa9 && !psa10) { alert("Enter at least one PSA market price."); return; }
-
-  const p9  = gradingNetProfit(psa9,  cost, fee);
-  const p10 = gradingNetProfit(psa10, cost, fee);
-
-  $("#gc-card-name").textContent = name;
-
-  function setBlock(profitEl, subEl, blockEl, profit, market) {
-    profitEl.textContent = market ? fmtProfit(profit) : "—";
-    profitEl.className = "tools-result-profit" + (market ? (profit >= 0 ? " pos" : " neg") : "");
-    subEl.textContent = market ? `@ $${market.toFixed(2)} market` : "No price entered";
-    blockEl.style.opacity = market ? "1" : "0.45";
+  function setEl(id, val, colorFn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (val === null) { el.textContent = "—"; el.style.color = ""; return; }
+    el.textContent = val;
+    if (colorFn) el.style.color = colorFn(val);
   }
 
-  setBlock($("#gc-psa9-profit"),  $("#gc-psa9-sub"),  $("#gc-psa9-block"),  p9,  psa9);
-  setBlock($("#gc-psa10-profit"), $("#gc-psa10-sub"), $("#gc-psa10-block"), p10, psa10);
+  const p9  = (psa9  != null && cost != null) ? gradingNetProfit(psa9,  cost, GFEE) : null;
+  const p10 = (psa10 != null && cost != null) ? gradingNetProfit(psa10, cost, GFEE) : null;
 
-  const verdict = $("#gc-verdict");
-  const best = psa10 ? p10 : p9;
-  const bestLabel = psa10 ? "PSA 10" : "PSA 9";
-  if (best >= 20) {
-    verdict.textContent = `✅ Grade it — strong upside at ${bestLabel} (+$${best.toFixed(2)})`;
-    verdict.className = "tools-verdict go";
-  } else if (best >= 0) {
-    verdict.textContent = `⚠️ Marginal — only +$${best.toFixed(2)} at ${bestLabel}. Grade if you're confident in the pop.`;
-    verdict.className = "tools-verdict maybe";
-  } else {
-    verdict.textContent = `❌ Don't grade — you'd lose $${Math.abs(best).toFixed(2)} even at ${bestLabel}.`;
-    verdict.className = "tools-verdict no";
-  }
+  setEl(`psacalc-9-${row}`,  p9  != null ? fmtProfit(p9)  : null, v => v.startsWith("+") ? "var(--green)" : "var(--red)");
+  setEl(`psacalc-10-${row}`, p10 != null ? fmtProfit(p10) : null, v => v.startsWith("+") ? "var(--green)" : "var(--red)");
 
-  $("#gc-result").classList.remove("hidden");
-}
+  const best = p10 ?? p9;
+  if (best === null) { setEl(`psacalc-v-${row}`, null); }
+  else if (best >= 20) { const el = document.getElementById(`psacalc-v-${row}`); if(el){el.textContent="✅ Grade it"; el.style.color="var(--green)";} }
+  else if (best >= 0)  { const el = document.getElementById(`psacalc-v-${row}`); if(el){el.textContent="⚠️ Marginal";  el.style.color="var(--amber)";} }
+  else                  { const el = document.getElementById(`psacalc-v-${row}`); if(el){el.textContent="❌ Pass";      el.style.color="var(--red)";} }
 
-// ============================================================================
-// Tools Tab — Pricing Tool
-// ============================================================================
-function calcPricing() {
-  const name      = $("#pt-name").value.trim() || "Card";
-  const cost      = parseFloat($("#pt-cost").value) || 0;
-  const fee       = parseFloat($("#pt-grade-fee").value) || 0;
-  const market    = parseFloat($("#pt-market").value) || 0;
-  const highSale  = parseFloat($("#pt-high").value) || 0;
-
-  if (!market) { alert("Enter a market price / avg comp."); return; }
-
-  const totalCost = cost + fee + LABEL_COST;
-  const floor     = totalCost / (1 - EBAY_RATE);
-  const ceiling   = highSale > market ? highSale : market * 1.25;
-
-  function netProfit(listPrice) {
-    return listPrice * (1 - EBAY_RATE) - LABEL_COST - cost - fee;
-  }
-
-  $("#pt-card-name").textContent = name;
-  $("#pt-floor").textContent      = "$" + floor.toFixed(2);
-  $("#pt-market-out").textContent = "$" + market.toFixed(2);
-  $("#pt-ceiling").textContent    = "$" + ceiling.toFixed(2);
-
-  function setMini(el, val) {
-    el.textContent = fmtProfit(val);
-    el.className = "tools-mini-val" + (val >= 0 ? " pos" : " neg");
-  }
-  setMini($("#pt-profit-floor"),   netProfit(floor));
-  setMini($("#pt-profit-market"),  netProfit(market));
-  setMini($("#pt-profit-ceiling"), netProfit(ceiling));
-
-  $("#pt-result").classList.remove("hidden");
+  const floor = cost != null ? (cost + GFEE + LABEL_COST) / (1 - EBAY_RATE) : null;
+  setEl(`psacalc-f-${row}`, floor != null ? fmtMoney(floor) : null);
 }
 
 // ============================================================================
@@ -2630,6 +2635,190 @@ function showWatchlistEmpty() {
   $("#watchlist-loading").classList.add("hidden");
   $("#watchlist-empty").classList.remove("hidden");
 }
+
+// ============================================================================
+// Price Check Tab — eBay sold-comp URL builder, paste parser, true-price calc
+// Pure client-side. No API calls. Retires the standalone Claude Code
+// FastAPI Pricing Tool once its math/parsing logic is ported in — see
+// CLAUDE.md System Decisions (2026-07-10).
+// ============================================================================
+let PC_COMPS = [];  // last-parsed comps: {title, price, date, included}
+
+function buildEbaySearchUrl(query, grade, company, useDcat) {
+  const kw = [query, grade ? `${company} ${grade}` : ""].filter(Boolean).join(" ");
+  const params = new URLSearchParams();
+  params.set("_nkw", kw);
+  params.set("LH_Sold", "1");
+  params.set("LH_Complete", "1");
+  params.set("_sop", "13"); // best-effort "ended recently" sort — eBay sort codes drift; use the UI's own sort dropdown if this doesn't land right
+  if (grade && useDcat) {
+    params.set("Grade", grade);       // verified structural filter (River Legacy build-day notes)
+    params.set("_dcat", "183454");    // Trading Card Grading category — verified
+  }
+  return `https://www.ebay.com/sch/i.html?${params.toString()}`;
+}
+
+function parsePastedComps(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const priceRe = /\$\s?([\d,]+\.\d{2})/;
+  const dateRe1 = /\b(?:Sold|Ended)?\s*([A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4})\b/;
+  const dateRe2 = /\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b/;
+  const skipRe = /^(or Best Offer|Free shipping|\+?\$[\d.,]+\s*shipping|Pre-Owned|Brand New|New \(Other\)|New with tags|\d+\s*bids?|Buy It Now|Top Rated Seller|Sponsored|from\s|Was:|Save\s)/i;
+
+  const comps = [];
+  for (let i = 0; i < lines.length; i++) {
+    const priceMatch = lines[i].match(priceRe);
+    if (!priceMatch) continue;
+    const price = parseFloat(priceMatch[1].replace(/,/g, ""));
+    if (!price || price <= 0) continue;
+
+    // Title: longest non-price, non-skip, non-date line in the few lines before the price
+    let title = "";
+    for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
+      const l = lines[j];
+      if (priceRe.test(l) || skipRe.test(l) || dateRe1.test(l) || dateRe2.test(l)) continue;
+      if (l.length > title.length) title = l;
+      if (title.length > 20) break;
+    }
+    if (!title) continue;
+
+    // Date: this line or the next few
+    let dateStr = null;
+    for (let j = i; j <= Math.min(lines.length - 1, i + 4); j++) {
+      const m = lines[j].match(dateRe1) || lines[j].match(dateRe2);
+      if (m) { dateStr = m[1]; break; }
+    }
+    const parsed = dateStr ? new Date(dateStr) : null;
+    const date = (parsed && !isNaN(parsed)) ? parsed : null;
+
+    comps.push({ title, price, date, included: true });
+  }
+  return comps;
+}
+
+function pcSelectWindow(comps) {
+  const now = new Date();
+  const windows = [30, 60, 90, 999999];
+  for (const days of windows) {
+    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const inWindow = comps.filter(c => !c.date || c.date >= cutoff);
+    if (inWindow.length >= 5 || days === 999999) return { comps: inWindow, windowDays: days };
+  }
+}
+
+function pcCapComps(comps, max = 25) {
+  const sorted = [...comps].sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return b.date - a.date;
+  });
+  return sorted.slice(0, max);
+}
+
+function pcTrimmedMedian(prices) {
+  if (!prices.length) return null;
+  const sorted = [...prices].sort((a, b) => a - b);
+  const n = sorted.length;
+  const trim = n >= 8 ? Math.max(1, Math.floor(n * 0.1)) : (n >= 5 ? 1 : 0);
+  const trimmed = trim > 0 ? sorted.slice(trim, n - trim) : sorted;
+  const m = trimmed.length;
+  const median = m % 2 === 1 ? trimmed[(m - 1) / 2] : (trimmed[m / 2 - 1] + trimmed[m / 2]) / 2;
+  return { median, low: trimmed[0], high: trimmed[trimmed.length - 1], count: m };
+}
+
+function pcRenderComps() {
+  const tbody = $("#pcCompsBody");
+  tbody.innerHTML = PC_COMPS.map((c, i) => `
+    <tr>
+      <td><input type="checkbox" data-idx="${i}" class="pc-comp-check" ${c.included ? "checked" : ""} style="width:auto;"></td>
+      <td class="col-title" style="max-width:320px;">${escapeHtml(c.title)}</td>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap;">${c.date ? c.date.toLocaleDateString() : "—"}</td>
+      <td class="num">${fmtMoney(c.price)}</td>
+    </tr>
+  `).join("");
+  $$(".pc-comp-check").forEach(cb => cb.addEventListener("change", e => {
+    PC_COMPS[Number(e.target.dataset.idx)].included = e.target.checked;
+  }));
+}
+
+function pcCompute() {
+  const included = PC_COMPS.filter(c => c.included);
+  if (!included.length) {
+    $("#pcResultTitle").textContent = "No comps checked";
+    $("#pcTruePrice").textContent = "—";
+    $("#pcRange").textContent = "";
+    $("#pcCompCount").textContent = "0";
+    $("#pcWindow").textContent = "";
+    return;
+  }
+  const { comps: windowed, windowDays } = pcSelectWindow(included);
+  const capped = pcCapComps(windowed, 25);
+  const stats = pcTrimmedMedian(capped.map(c => c.price));
+
+  $("#pcResultTitle").textContent = $("#pcQuery").value || "Card";
+  $("#pcTruePrice").textContent = stats ? fmtMoney(stats.median) : "—";
+  $("#pcRange").textContent = stats ? `Range ${fmtMoney(stats.low)} – ${fmtMoney(stats.high)}` : "";
+  $("#pcCompCount").textContent = String(stats ? stats.count : 0);
+  $("#pcWindow").textContent = windowDays >= 999999 ? "All available (widened from 30 days)" : `Last ${windowDays} days`;
+}
+
+$("#pcBuildUrl")?.addEventListener("click", () => {
+  const query = $("#pcQuery").value.trim();
+  if (!query) { toast("Enter a card name/set first", "error"); return; }
+  const grade = $("#pcGrade").value;
+  const company = $("#pcCompany").value;
+  const useDcat = $("#pcUseDcat").checked;
+  const url = buildEbaySearchUrl(query, grade, company, useDcat);
+  const link = $("#pcSearchLink");
+  link.href = url;
+  link.textContent = "Open eBay search ↗";
+  link.classList.remove("hidden");
+  window.open(url, "_blank");
+});
+
+$("#pcParseBtn")?.addEventListener("click", () => {
+  const text = $("#pcPaste").value;
+  if (!text.trim()) { toast("Paste sold-listing text first", "error"); return; }
+  PC_COMPS = parsePastedComps(text);
+  const statusEl = $("#pcParseStatus");
+  if (!PC_COMPS.length) {
+    statusEl.textContent = "No comps recognized — eBay's page layout may not match the expected pattern. Try pasting a smaller, cleaner selection.";
+    $("#pcResultsPanel").classList.add("hidden");
+    return;
+  }
+  statusEl.textContent = `Parsed ${PC_COMPS.length} comp${PC_COMPS.length !== 1 ? "s" : ""} — review below, uncheck anything that doesn't belong.`;
+  $("#pcResultsPanel").classList.remove("hidden");
+  pcRenderComps();
+  pcCompute();
+});
+
+$("#pcRecalcBtn")?.addEventListener("click", pcCompute);
+
+$("#pcClearBtn")?.addEventListener("click", () => {
+  $("#pcPaste").value = "";
+  $("#pcParseStatus").textContent = "";
+  $("#pcResultsPanel").classList.add("hidden");
+  PC_COMPS = [];
+});
+
+$("#pcPushBtn")?.addEventListener("click", () => {
+  const included = PC_COMPS.filter(c => c.included);
+  if (!included.length) { toast("No comps checked — nothing to log", "error"); return; }
+  const { comps: windowed } = pcSelectWindow(included);
+  const stats = pcTrimmedMedian(pcCapComps(windowed, 25).map(c => c.price));
+  if (!stats) { toast("Nothing to compute", "error"); return; }
+
+  const row = {
+    "Date": new Date(),
+    "Card": $("#pcQuery").value.trim(),
+    "Set": "",
+    "Grade": $("#pcGrade").value ? `${$("#pcCompany").value} ${$("#pcGrade").value}` : "Raw",
+    "Price": stats.median,
+    "Comp Count": stats.count,
+  };
+  pushToSheets("Price History", [row], ["Date", "Card", "Set", "Grade", "Price", "Comp Count"]);
+});
 
 // ============================================================================
 // Init
