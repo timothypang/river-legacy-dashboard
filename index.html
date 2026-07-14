@@ -814,7 +814,7 @@
           <label class="tools-label">Pokémon name</label>
           <input id="pcName" class="tools-input" placeholder="e.g. Mega Dragonite ex">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
           <div>
             <label class="tools-label">Card #</label>
             <input id="pcCardNum" class="tools-input" placeholder="e.g. 105/086">
@@ -822,6 +822,10 @@
           <div>
             <label class="tools-label">Set</label>
             <input id="pcSet" class="tools-input" placeholder="e.g. Scarlet & Violet">
+          </div>
+          <div>
+            <label class="tools-label">Year</label>
+            <input id="pcYear" class="tools-input" placeholder="e.g. 2023">
           </div>
         </div>
       </div>
@@ -844,11 +848,17 @@
           <div>
             <label class="tools-label">Grade</label>
             <select id="pcGrade" class="tools-input">
-              <option value="">Raw / ungraded</option>
+              <option value="">- / N/A (raw)</option>
               <option value="10">10 (Gem Mint)</option>
               <option value="9">9 (Mint)</option>
               <option value="8">8 (NM-Mint)</option>
               <option value="7">7 (Near Mint)</option>
+              <option value="6">6 (Ex-Mint)</option>
+              <option value="5">5 (Excellent)</option>
+              <option value="4">4 (VG-Ex)</option>
+              <option value="3">3 (Very Good)</option>
+              <option value="2">2 (Good)</option>
+              <option value="1">1 (Poor)</option>
             </select>
           </div>
           <div>
@@ -860,6 +870,16 @@
             </select>
           </div>
         </div>
+      </div>
+      <div id="pcConditionWrap" style="margin-top:12px;max-width:280px;">
+        <label class="tools-label">Raw condition (if ungraded)</label>
+        <select id="pcCondition" class="tools-input">
+          <option value="">- / N/A</option>
+          <option value="NM">NM — Near Mint</option>
+          <option value="LP">LP — Lightly Played</option>
+          <option value="MP">MP — Moderately Played</option>
+          <option value="HP">HP — Heavily Played</option>
+        </select>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
         <input type="checkbox" id="pcUseDcat" checked style="width:auto;">
@@ -2535,8 +2555,11 @@ function pcComposeQuery() {
   const name = $("#pcName").value.trim();
   const cardNum = $("#pcCardNum").value.trim();
   const set = $("#pcSet").value.trim();
+  const year = $("#pcYear").value.trim();
   const lang = pcLanguageValue();
-  return [name, set, cardNum, lang].filter(Boolean).join(" ");
+  const grade = $("#pcGrade").value;
+  const condition = !grade ? $("#pcCondition").value : "";
+  return [name, set, year, cardNum, lang, condition].filter(Boolean).join(" ");
 }
 
 function buildEbaySearchUrl(query, grade, company, useDcat) {
@@ -2662,6 +2685,10 @@ $("#pcLanguage")?.addEventListener("change", () => {
   $("#pcLanguageOtherWrap").classList.toggle("hidden", $("#pcLanguage").value !== "Other");
 });
 
+$("#pcGrade")?.addEventListener("change", () => {
+  $("#pcConditionWrap").classList.toggle("hidden", $("#pcGrade").value !== "");
+});
+
 $("#pcBuildUrl")?.addEventListener("click", () => {
   if (!$("#pcName").value.trim()) { toast("Enter a Pokémon name first", "error"); return; }
   const query = pcComposeQuery();
@@ -2709,11 +2736,14 @@ $("#pcPushBtn")?.addEventListener("click", () => {
   if (!stats) { toast("Nothing to compute", "error"); return; }
 
   const cardName = [$("#pcName").value.trim(), $("#pcCardNum").value.trim()].filter(Boolean).join(" ");
+  const gradeVal = $("#pcGrade").value;
+  const conditionVal = $("#pcCondition").value;
+  const gradeLabel = gradeVal ? `${$("#pcCompany").value} ${gradeVal}` : (conditionVal ? `Raw ${conditionVal}` : "Raw");
   const row = {
     "Date": new Date(),
     "Card": cardName,
     "Set": $("#pcSet").value.trim(),
-    "Grade": $("#pcGrade").value ? `${$("#pcCompany").value} ${$("#pcGrade").value}` : "Raw",
+    "Grade": gradeLabel,
     "Price": stats.median,
     "Comp Count": stats.count,
   };
@@ -2774,12 +2804,15 @@ function pcLoadRecentSearches(force) {
           $("#pcCardNum").value = "";
           $("#pcSet").value = iSet >= 0 ? (r[iSet] || "") : "";
           const grade = iGrade >= 0 ? (r[iGrade] || "") : "";
-          if (/^raw$/i.test(grade)) {
+          const rawMatch = grade.match(/^Raw\s*(NM|LP|MP|HP)?$/i);
+          if (rawMatch) {
             $("#pcGrade").value = "";
+            $("#pcCondition").value = rawMatch[1] ? rawMatch[1].toUpperCase() : "";
           } else {
             const m = grade.match(/^(PSA|BGS|CGC)\s*(\d+)/i);
-            if (m) { $("#pcCompany").value = m[1].toUpperCase(); $("#pcGrade").value = m[2]; }
+            if (m) { $("#pcCompany").value = m[1].toUpperCase(); $("#pcGrade").value = m[2]; $("#pcCondition").value = ""; }
           }
+          $("#pcConditionWrap").classList.toggle("hidden", $("#pcGrade").value !== "");
           toast("Form filled from recent search — adjust as needed", "success");
         });
       });
