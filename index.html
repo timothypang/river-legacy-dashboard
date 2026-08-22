@@ -679,7 +679,7 @@
 <header>
   <div>
     <h1>River Legacy — Dashboard</h1>
-    <div class="file-info" id="fileInfo">Connecting to Google Sheets…</div>
+    <div class="file-info" id="fileInfo">Loading local data…</div>
   </div>
   <div class="actions">
     <button id="refreshBtn" class="ghost">↻ Refresh</button>
@@ -697,9 +697,9 @@
 
 <main>
   <div id="emptyState" class="empty">
-    <h2>Connecting to Google Sheets…</h2>
+    <h2>Loading local data…</h2>
     <p>Loading your River Legacy data.</p>
-    <p class="hint">If this takes more than a few seconds, each Google Sheet must be shared as "Anyone with the link can view."</p>
+    <p class="hint">If this takes more than a few seconds, check that data/inventory.json, data/orders.json, and data/other-orders.json are deployed alongside this file.</p>
   </div>
 
   <!-- OVERVIEW TAB -->
@@ -754,7 +754,7 @@
     <div class="info-bar" style="margin-top:14px;margin-bottom:0;line-height:1.9">
       <strong>Editable columns:</strong> Cost ($), Market ($), Date Acquired, Condition, Grade (highlighted yellow).<br>
       Click <strong>▶</strong> to expand a row and edit Set/Product, Card #/ID, Language, Variant, and Rarity.<br>
-      Click <strong>Push → Sheets</strong> to copy changes as TSV — paste into A1 in your Google Sheet to save.
+      Click <strong>Push → Sheets</strong> to copy changes as JSON — send it to Cowork to save as <code>data/inventory.json</code>.
     </div>
   </div>
 
@@ -778,7 +778,7 @@
     <div class="info-bar" style="margin-bottom:24px;line-height:1.9">
       <strong>Editable columns:</strong> Owner, Cost ($), Paid Out (highlighted yellow).<br>
       <strong>River Legacy →</strong> Tim 50% / Vince 50% &nbsp;|&nbsp; <strong>Juan →</strong> Juan 88%, River Legacy 12%<br>
-      After editing, click <strong>Push → Sheets</strong> and paste into your Google Sheet.
+      After editing, click <strong>Push → Sheets</strong> and send the copied JSON to Cowork to save as <code>data/orders.json</code>.
     </div>
 
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
@@ -844,37 +844,28 @@
             <input id="pcLanguageOther" class="tools-input" placeholder="e.g. Korean">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div>
-            <label class="tools-label">Grade</label>
-            <select id="pcGrade" class="tools-input">
-              <option value="">- / N/A (raw)</option>
-              <option value="10">10 (Gem Mint)</option>
-              <option value="9">9 (Mint)</option>
-              <option value="8">8 (NM-Mint)</option>
-              <option value="7">7 (Near Mint)</option>
-              <option value="6">6 (Ex-Mint)</option>
-              <option value="5">5 (Excellent)</option>
-              <option value="4">4 (VG-Ex)</option>
-              <option value="3">3 (Very Good)</option>
-              <option value="2">2 (Good)</option>
-              <option value="1">1 (Poor)</option>
-            </select>
-          </div>
-          <div>
-            <label class="tools-label">Company</label>
-            <select id="pcCompany" class="tools-input">
-              <option value="PSA">PSA</option>
-              <option value="BGS">BGS</option>
-              <option value="CGC">CGC</option>
-            </select>
-          </div>
+        <div>
+          <label class="tools-label">Grade</label>
+          <select id="pcGrade" class="tools-input">
+            <option value="">- (raw)</option>
+            <option value="10">10 (Gem Mint)</option>
+            <option value="9">9 (Mint)</option>
+            <option value="8">8 (NM-Mint)</option>
+            <option value="7">7 (Near Mint)</option>
+            <option value="6">6 (Ex-Mint)</option>
+            <option value="5">5 (Excellent)</option>
+            <option value="4">4 (VG-Ex)</option>
+            <option value="3">3 (Very Good)</option>
+            <option value="2">2 (Good)</option>
+            <option value="1">1 (Poor)</option>
+          </select>
+          <input type="hidden" id="pcCompany" value="PSA">
         </div>
       </div>
       <div id="pcConditionWrap" style="margin-top:12px;max-width:280px;">
         <label class="tools-label">Raw condition (if ungraded)</label>
         <select id="pcCondition" class="tools-input">
-          <option value="">- / N/A</option>
+          <option value="">-</option>
           <option value="NM">NM — Near Mint</option>
           <option value="LP">LP — Lightly Played</option>
           <option value="MP">MP — Moderately Played</option>
@@ -932,17 +923,16 @@
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button id="pcRecalcBtn" class="ghost">↻ Recompute from checked comps</button>
-        <button id="pcPushBtn">📤 Log to Price History → Push to Sheets</button>
+        <button id="pcPushBtn">📤 Log to Price History → Push to Data File</button>
       </div>
       <div class="info-bar" style="margin-top:14px;margin-bottom:0;">
-        No <strong>Price History</strong> tab yet? Add one to your Google Sheet with columns:<br>
-        <code style="font-size:12px;background:var(--surface-2);padding:4px 8px;border-radius:4px;display:inline-block;margin-top:6px;">Date | Card | Set | Grade | Price | Comp Count</code>
+        Copies this result as JSON — send it to Cowork to append into <code>data/price-history.json</code> in the repo.
       </div>
     </section>
 
   </div>
 
-  <div class="footer">River Legacy Card Store · v6 · Live from Google Sheets</div>
+  <div class="footer">River Legacy Card Store · v7 · Local JSON data store</div>
 
 <!-- ===== ADD ENTRY MODAL ===== -->
 <div id="addEntryModal" class="modal-overlay">
@@ -1228,21 +1218,27 @@
 "use strict";
 
 // ============================================================================
-// Google Sheets Config — set these IDs, then share each sheet as
-// "Anyone with the link can view" in Google Drive
+// Data Store Config — local JSON files in this repo's /data/ folder
+// (migrated 2026-08-21 off the Google Sheet; archived sheet ID kept here
+// for reference only, not used for live fetches)
 // ============================================================================
-// Single consolidated Google Sheet — all 4 tabs live here
-// Moving the file in Google Drive is fine; the ID never changes.
-const MASTER_SHEET_ID = "103FBgK54UQPVxSR8rGgIpUktFqAbJqcQglwXq1SBUII";
-const SHEET_IDS = {
-  inventory:   "Inventory",
-  orders:      "eBay Orders",
-  otherOrders: "Other Orders",
-  activityLog: "Activity Log",
+const ARCHIVED_SHEET_ID = "103FBgK54UQPVxSR8rGgIpUktFqAbJqcQglwXq1SBUII";
+const DATA_URLS = {
+  inventory:    "./data/inventory.json",
+  orders:       "./data/orders.json",
+  otherOrders:  "./data/other-orders.json",
+  priceHistory: "./data/price-history.json",
 };
-function sheetUrl(tabName) {
-  return `https://docs.google.com/spreadsheets/d/${MASTER_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+async function fetchJSON(url) {
+  const res = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now());
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+  return res.json();
 }
+// Default assumptions applied at read time when a raw order doesn't specify
+// its own value — matches the KB's long-standing SOP defaults. A row with an
+// explicit otherFees/shippingLabel in its JSON always wins over these.
+const OTHER_FEES_DEFAULT = 0.40;
+const SHIPPING_LABEL_DEFAULT = 5.50;
 
 // ============================================================================
 // Chart.js defaults
@@ -1358,161 +1354,157 @@ function cellAddr(row0, col0) {
 }
 
 // ============================================================================
-// CSV Parser
+// Data Loader — reads raw facts from local JSON, computes everything else
+// (Gross, FVF, Net from eBay, Net Profit, Margin %, Owner Shares) at read
+// time. A formula fix here auto-corrects every historical row; no need to
+// ever rewrite the JSON files for a formula change.
 // ============================================================================
-function parseCSV(text) {
-  const lines = []; let cur = ""; let inQ = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '"') { inQ = !inQ; }
-    else if (ch === '\n' && !inQ) { lines.push(cur.replace(/\r$/,"")); cur = ""; }
-    else { cur += ch; }
-  }
-  if (cur.trim()) lines.push(cur);
+function computeOrderFields(o) {
+  const subtotal = num(o["Item Subtotal ($)"]);
+  const sh       = num(o["Buyer S&H ($)"]);
+  const gross    = Math.round((subtotal + sh) * 100) / 100;
+  const ebayTax  = num(o["eBay Tax ($)"]);
+  // eBay charges its Final Value Fee on the tax-inclusive total (eBay collects
+  // and remits the tax as marketplace facilitator, and FVF applies to that
+  // full amount) — verified against 34 of 36 disambiguating historical rows
+  // that had non-zero tax; only 2 didn't match this, likely data-entry slips.
+  const fvf      = Math.round((gross + ebayTax) * EBAY_RATE * 100) / 100;
+  const otherFees = o["__rawOtherFees"] != null ? num(o["__rawOtherFees"]) : OTHER_FEES_DEFAULT;
+  const totalFees = Math.round((fvf + otherFees) * 100) / 100;
+  // Net from eBay = Gross minus BOTH fee components (FVF and Other Fees),
+  // i.e. Gross - Total Fees. Verified against 36 of 48 historical sheet rows;
+  // the other 12 were rows where Other Fees had been silently dropped from
+  // this step (a pre-existing inconsistency in the old sheet) — this is the
+  // financially correct version since Other Fees is a real cost.
+  const netFromEbay = Math.round((gross - totalFees) * 100) / 100;
+  const label = o["__rawShippingLabel"] != null ? num(o["__rawShippingLabel"]) : SHIPPING_LABEL_DEFAULT;
+  const isRefunded = o["Status"] === "Refunded";
+  // Matches the sheet's long-standing convention: refunded orders carry no
+  // owner profit/share, regardless of what eBay refunded back on fees.
+  const netProfit = isRefunded ? 0 : Math.round((netFromEbay - label) * 100) / 100;
+  const margin = gross > 0 ? netProfit / gross : 0;
+  const shares = computeShares(o["Owner"], netProfit);
 
-  function splitLine(line) {
-    const cells = []; let cell = ""; let q = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { q = !q; }
-      else if (c === ',' && !q) { cells.push(cell); cell = ""; }
-      else { cell += c; }
-    }
-    cells.push(cell);
-    return cells.map(c => c.trim());
-  }
-
-  const nonEmpty = lines.filter(l => l.trim() && l.trim() !== new Array(l.split(',').length).fill(',').join(''));
-  if (!nonEmpty.length) return { headers: [], rows: [] };
-  const headers = splitLine(nonEmpty[0]);
-  const rows = nonEmpty.slice(1).map(line => {
-    const vals = splitLine(line);
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-    return obj;
-  }).filter(r => Object.values(r).some(v => v !== ""));
-  return { headers, rows };
+  o["Gross ($)"] = gross;
+  o["FVF Variable ($)"] = fvf;
+  o["Other Fees ($)"] = otherFees;
+  o["Total Fees ($)"] = totalFees;
+  o["Net from eBay ($)"] = netFromEbay;
+  o["Shipping Label ($)"] = label;
+  o["Net Profit ($)"] = netProfit;
+  o["Margin %"] = margin;
+  o["Tim Share ($)"] = shares.tim;
+  o["Vince Share ($)"] = shares.vince;
+  o["Juan Share ($)"] = shares.juan;
+  o["River Legacy Share ($)"] = shares.riverLegacy;
+  return o;
 }
 
-// ============================================================================
-// Google Sheets Loader
-// ============================================================================
-async function fetchSheetCSV(id) {
-  const url = sheetUrl(id);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching sheet ${id}`);
-  return res.text();
-}
+const INV_HEADERS_FIXED = [
+  "Cost ($)","Market ($)","Card Name","Game","Set / Product","Card # / ID","Language",
+  "Variant","Rarity","Condition","Graded?","Grade","Owner","Qty","Date Acquired",
+  "$ Gain","% Gain","Status","PSA 9 Mkt ($)","PSA 10 Mkt ($)",
+];
+const ORDER_HEADERS_FIXED = [
+  "Sale Date","Item Title","Owner","Item Subtotal ($)","Net Profit ($)","Tim Share ($)",
+  "Vince Share ($)","Juan Share ($)","Margin %","Buyer S&H ($)","eBay Tax ($)",
+  "FVF Variable ($)","Other Fees ($)","Total Fees ($)","Net from eBay ($)",
+  "Shipping Label ($)","Refund ($)","Gross ($)","Buyer Username","Ship State",
+  "Tracking #","Status","Paid Out",
+];
 
-async function loadFromSheets() {
+async function loadData() {
   const info = $("#fileInfo");
-  info.textContent = "Loading from Google Sheets…";
+  info.textContent = "Loading local data…";
   $("#loadingBar").style.display = "block";
   try {
-    const [invText, ordText, ooText] = await Promise.all([
-      fetchSheetCSV(SHEET_IDS.inventory),
-      fetchSheetCSV(SHEET_IDS.orders),
-      fetchSheetCSV(SHEET_IDS.otherOrders),
+    const [inv, ord, oo] = await Promise.all([
+      fetchJSON(DATA_URLS.inventory),
+      fetchJSON(DATA_URLS.orders),
+      fetchJSON(DATA_URLS.otherOrders),
     ]);
 
-    // Parse Inventory
-    const inv = parseCSV(invText);
-    STATE.invHeaders = inv.headers;
-    STATE.inventory = inv.rows.map((r, i) => {
-      if (!r["Card Name"]) return null;
-      const o = { __row: i + 2 };
-      inv.headers.forEach(h => { o[h] = r[h] === "" ? null : r[h]; });
-      if (o["Owner"]) o["Owner"] = o["Owner"].trim();
-      // Parse numeric fields
-      ["Cost ($)","Market ($)","$ Gain","% Gain","Qty"].forEach(h => {
-        if (o[h] != null && o[h] !== "") o[h] = parseFloat(o[h]) || 0;
-      });
-      // Parse date
-      if (o["Date Acquired"] && o["Date Acquired"] !== "__childhood__") {
-        const d = new Date(o["Date Acquired"] + "T00:00:00");
-        o["Date Acquired"] = isNaN(d) ? o["Date Acquired"] : d;
-      }
-      return o;
-    }).filter(Boolean);
+    // Inventory — raw facts in, sheet-style keys out (unchanged rendering code below)
+    STATE.invHeaders = INV_HEADERS_FIXED;
+    STATE.inventory = inv.filter(r => r.item).map((r, i) => {
+      const dateStr = r.dateAcquired || "";
+      const dateVal = dateStr === CHILDHOOD_SENTINEL ? CHILDHOOD_SENTINEL
+        : dateStr ? (() => { const d = new Date(dateStr + "T00:00:00"); return isNaN(d) ? dateStr : d; })()
+        : null;
+      return {
+        __row: i + 2,
+        "Cost ($)": num(r.cost),
+        "Market ($)": num(r.market),
+        "Card Name": r.item,
+        "Game": r.game || "",
+        "Set / Product": r.set || "",
+        "Card # / ID": r.cardNum || "",
+        "Language": r.language || "",
+        "Variant": r.variant || "",
+        "Rarity": r.rarity || "",
+        "Condition": r.condition || "",
+        "Graded?": r.graded ? "Yes" : "No",
+        "Grade": r.grade || "",
+        "Owner": (r.owner || "").trim(),
+        "Qty": num(r.qty) || 1,
+        "Date Acquired": dateVal,
+        "$ Gain": null,   // computed below once Market/Cost are known
+        "% Gain": null,
+        "Status": r.status || "",
+        "PSA 9 Mkt ($)": r.psa9Mkt != null ? num(r.psa9Mkt) : null,
+        "PSA 10 Mkt ($)": r.psa10Mkt != null ? num(r.psa10Mkt) : null,
+      };
+    });
+    STATE.inventory.forEach(item => {
+      const cost = num(item["Cost ($)"]), market = num(item["Market ($)"]);
+      item["$ Gain"] = market - cost;
+      item["% Gain"] = cost > 0 ? ((market - cost) / cost) * 100 : null;
+    });
     STATE.forSaleSet = new Map();
     STATE.inventory.forEach(item => {
       const st = item["Status"] ? String(item["Status"]).trim() : "";
       if (st === "For Sale" || st === "Grading") STATE.forSaleSet.set(item.__row, st);
     });
-    if (!STATE.invHeaders.includes("Status")) STATE.invHeaders.push("Status");
 
-    // Parse Orders
-    const ord = parseCSV(ordText);
-    STATE.orderHeaders = ord.headers;
-    STATE.orders = ord.rows.map((r, i) => {
-      if (!r["Item Title"]) return null;
-      const o = { __row: i + 2 };
-      ord.headers.forEach(h => { o[h] = r[h] === "" ? null : r[h]; });
-      if (o["Owner"])    o["Owner"]    = String(o["Owner"]).trim();
-      if (o["Status"])   o["Status"]   = String(o["Status"]).trim();
-      if (o["Paid Out"]) o["Paid Out"] = String(o["Paid Out"]).trim();
-      // Parse numerics
-      ["Item Subtotal ($)","Net Profit ($)","Tim Share ($)","Vince Share ($)","Juan Share ($)",
-       "Buyer S&H ($)","eBay Tax ($)","FVF Variable ($)","Other Fees ($)","Total Fees ($)",
-       "Net from eBay ($)","Shipping Label ($)","Refund ($)","Gross ($)","Margin %"].forEach(h => {
-        if (o[h] != null && o[h] !== "") o[h] = parseFloat(o[h]);
-      });
-      // Recompute derived fields
-      const netFromEB = o["Net from eBay ($)"];
-      let np;
-      if (netFromEB != null && !isNaN(netFromEB) && netFromEB !== 0) {
-        np = netFromEB - num(o["Shipping Label ($)"]) - num(o["Refund ($)"]);
-      } else if (o["Net Profit ($)"] != null && !isNaN(o["Net Profit ($)"])) {
-        np = num(o["Net Profit ($)"]);
-      } else {
-        // Auto-estimate from sale price when fee data is missing
-        const gross = num(o["Item Subtotal ($)"]) + num(o["Buyer S&H ($)"]);
-        const fvfEst = Math.round(gross * 0.1325 * 100) / 100;
-        const netEst = Math.round((gross - fvfEst - 5.50) * 100) / 100;
-        np = gross > 0 ? netEst : 0;
-        // Fill in estimated fee columns so they display correctly
-        if (gross > 0) {
-          o["FVF Variable ($)"] = fvfEst;
-          o["Other Fees ($)"] = 0.40;
-          o["Total Fees ($)"] = Math.round((fvfEst + 0.40) * 100) / 100;
-          o["Net from eBay ($)"] = Math.round((gross - fvfEst) * 100) / 100;
-          o["Shipping Label ($)"] = 5.50;
-          o["Gross ($)"] = gross;
-          o["__estimated"] = true; // flag so we can show indicator
-        }
-      }
-      o["Net Profit ($)"] = np;
-      if (!o["Total Fees ($)"]) o["Total Fees ($)"] = num(o["FVF Variable ($)"]) + num(o["Other Fees ($)"]);
-      o["Gross ($)"] = num(o["Item Subtotal ($)"]) + num(o["Buyer S&H ($)"]);
-      o["Margin %"] = (o["Gross ($)"] > 0) ? np / o["Gross ($)"] : 0;
-      const allNull = o["Tim Share ($)"] == null && o["Vince Share ($)"] == null && o["Juan Share ($)"] == null;
-      const allZero = num(o["Tim Share ($)"]) === 0 && num(o["Vince Share ($)"]) === 0 && num(o["Juan Share ($)"]) === 0;
-      if (allNull || (allZero && np !== 0)) {
-        const s = computeShares(o["Owner"], np);
-        o["Tim Share ($)"] = s.tim; o["Vince Share ($)"] = s.vince; o["Juan Share ($)"] = s.juan;
-      }
-      o["River Legacy Share ($)"] = computeShares(o["Owner"], np).riverLegacy;
-      return o;
-    }).filter(Boolean);
-
-    // Parse Other Orders
-    const oo = parseCSV(ooText);
-    STATE.otherOrders = oo.rows.map(r => {
-      const id = r.id || r["id"] || ("oo_" + Math.random().toString(36).slice(2));
-      return {
-        id,
-        itemName:  r.itemName  || r["Item Name"]  || "",
-        cost:      parseFloat(r.cost || r["Cost ($)"] || 0) || 0,
-        salePrice: parseFloat(r.salePrice || r["Sale Price ($)"] || 0) || 0,
-        ebayFees:  parseFloat(r.ebayFees  || r["eBay Fees ($)"]  || 0) || 0,
-        date:  r.date  || r["Date"]  || "",
-        owner: r.owner || r["Owner"] || "",
-        notes: r.notes || r["Notes"] || "",
+    // Orders — raw facts in, all financials computed at read time
+    STATE.orderHeaders = ORDER_HEADERS_FIXED;
+    STATE.orders = ord.filter(r => r.item).map((r, i) => {
+      const o = {
+        __row: i + 2,
+        "Sale Date": r.date || "",
+        "Item Title": r.item,
+        "Owner": (r.owner || "").trim(),
+        "Item Subtotal ($)": num(r.itemSubtotal),
+        "Buyer S&H ($)": num(r.buyerShipping),
+        "eBay Tax ($)": r.ebayTax != null ? num(r.ebayTax) : 0,
+        "Refund ($)": r.refund != null ? num(r.refund) : null,
+        "Buyer Username": r.buyer || "",
+        "Ship State": r.shipState || "",
+        "Tracking #": r.tracking || "",
+        "Status": r.status || "Shipped",
+        "Paid Out": r.paidOut || null,
+        // stashed raw values (may be null) so computeOrderFields can tell
+        // "not specified, use default" apart from "explicitly this value"
+        "__rawOtherFees": r.otherFees != null ? num(r.otherFees) : null,
+        "__rawShippingLabel": r.shippingLabel != null ? num(r.shippingLabel) : null,
       };
-    }).filter(r => r.itemName);
+      return computeOrderFields(o);
+    });
+
+    // Other Orders (sports/non-card items) — unchanged from before, just a local fetch now
+    STATE.otherOrders = oo.map(r => ({
+      id: r.id || ("oo_" + Math.random().toString(36).slice(2)),
+      itemName: r.itemName || "",
+      cost: num(r.cost),
+      salePrice: num(r.salePrice),
+      ebayFees: num(r.ebayFees),
+      date: r.date || "",
+      owner: r.owner || "",
+      notes: r.notes || "",
+    })).filter(r => r.itemName);
     STATE.otherOrders.forEach(calcOO);
 
-    info.textContent = `Loaded from Google Sheets · ${STATE.inventory.length} inventory · ${STATE.orders.length} orders`;
+    info.textContent = `Loaded from local data · ${STATE.inventory.length} inventory · ${STATE.orders.length} orders`;
     $("#loadingBar").style.display = "none";
     $("#tabs").classList.remove("hidden");
     $("#emptyState").classList.add("hidden");
@@ -1524,12 +1516,10 @@ async function loadFromSheets() {
     info.textContent = "⚠ Could not load — see error below";
     $("#emptyState").classList.remove("hidden");
     $("#emptyState").innerHTML = `
-      <h2>⚠ Could not connect to Google Sheets</h2>
+      <h2>⚠ Could not load local data</h2>
       <p>${escapeHtml(err.message)}</p>
-      <p>Make sure each sheet is shared as <strong>"Anyone with the link can view"</strong>:</p>
-      <p>Open the sheet in Google Drive → Share → Change to "Anyone with the link" → Viewer → Done</p>
-      <p><a href="https://docs.google.com/spreadsheets/d/${MASTER_SHEET_ID}" target="_blank" style="color:var(--gold)">Open River Legacy Master Sheet ↗</a></p>
-      <button onclick="loadFromSheets()" style="margin-top:12px;">Retry</button>`;
+      <p>Make sure <code>data/inventory.json</code>, <code>data/orders.json</code>, and <code>data/other-orders.json</code> are deployed alongside this file.</p>
+      <button onclick="loadData()" style="margin-top:12px;">Retry</button>`;
     console.error(err);
   }
 }
@@ -1541,8 +1531,8 @@ function markDirty(sheetName, row1, col1, value) {
   const addr = `${sheetName}!${cellAddr(row1 - 1, col1 - 1)}`;
   STATE.dirty.add(addr);
   STATE.dirtyValues.set(addr, value);
-  $("#pushInvBtn").disabled   = false;
-  $("#pushOrdersBtn").disabled = false;
+  const pib = $("#pushInvBtn"); if (pib) pib.disabled = false;
+  const pob = $("#pushOrdersBtn"); if (pob) pob.disabled = false;
 }
 
 function logActivity(action, detail, oldVal, newVal) {
@@ -1572,23 +1562,57 @@ function calcOO(o) {
 }
 
 // ============================================================================
-// Push to Sheets (TSV clipboard)
+// Push to Data File (JSON clipboard) — there's no live write path from a
+// static GitHub Pages site, so this copies the current table back out as
+// raw-facts JSON. Hand it to Cowork to save as the new data/*.json content
+// and redeploy. Mirrors the old TSV-into-Sheets pattern, JSON instead of a
+// cell range, Cowork instead of a direct paste.
 // ============================================================================
-async function pushToSheets(sheetName, rows, headers) {
-  const lines = [headers.join("\t")];
-  for (const r of rows) {
-    lines.push(headers.map(h => {
-      const v = r[h];
-      if (v == null || v === "") return "";
-      if (v instanceof Date) return fmtDateInput(v);
-      if (typeof v === "number") return h === "Margin %" ? v.toFixed(6) : v.toFixed(2);
-      return String(v).replace(/[\t\r\n]/g," ");
-    }).join("\t"));
-  }
-  const tsv = lines.join("\n");
-  try { await navigator.clipboard.writeText(tsv); }
-  catch(e) { const ta = document.createElement("textarea"); ta.value=tsv; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
-  toast(`${rows.length} rows copied — paste into A1 in Google Sheets`, "success");
+function toRawInventory(item) {
+  return {
+    cost: num(item["Cost ($)"]),
+    market: num(item["Market ($)"]),
+    item: item["Card Name"],
+    game: item["Game"] || "",
+    set: item["Set / Product"] || "",
+    cardNum: item["Card # / ID"] || "",
+    language: item["Language"] || "",
+    variant: item["Variant"] || "",
+    rarity: item["Rarity"] || "",
+    condition: item["Condition"] || "",
+    graded: item["Graded?"] === "Yes",
+    grade: item["Grade"] || "",
+    owner: item["Owner"] || "",
+    qty: num(item["Qty"]) || 1,
+    dateAcquired: item["Date Acquired"] === CHILDHOOD_SENTINEL ? CHILDHOOD_SENTINEL : (item["Date Acquired"] ? fmtDateInput(item["Date Acquired"]) : ""),
+    status: item["Status"] || "",
+    psa9Mkt: item["PSA 9 Mkt ($)"] ?? null,
+    psa10Mkt: item["PSA 10 Mkt ($)"] ?? null,
+  };
+}
+function toRawOrder(o) {
+  return {
+    date: o["Sale Date"] || "",
+    item: o["Item Title"],
+    owner: o["Owner"] || "",
+    itemSubtotal: num(o["Item Subtotal ($)"]),
+    buyerShipping: num(o["Buyer S&H ($)"]),
+    ebayTax: num(o["eBay Tax ($)"]) || 0,
+    otherFees: o["__rawOtherFees"] ?? null,
+    shippingLabel: o["__rawShippingLabel"] ?? null,
+    refund: o["Refund ($)"] ?? null,
+    buyer: o["Buyer Username"] || "",
+    shipState: o["Ship State"] || "",
+    tracking: o["Tracking #"] || "",
+    status: o["Status"] || "Shipped",
+    paidOut: o["Paid Out"] || null,
+  };
+}
+async function pushToDataFile(fileName, rawRows) {
+  const json = JSON.stringify(rawRows, null, 2);
+  try { await navigator.clipboard.writeText(json); }
+  catch(e) { const ta = document.createElement("textarea"); ta.value=json; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
+  toast(`${rawRows.length} rows copied as JSON — send to Cowork to save as data/${fileName}`, "success");
 }
 
 // ============================================================================
@@ -2401,7 +2425,7 @@ if($("#importConfirmBtn")){
       STATE.orders.unshift(newOrder); added++;
     }
     closeImportOrdersModal(); renderOrders(); refreshBudgets();
-    toast(`Imported ${added} order${added!==1?"s":""}. Push → Sheets to save.`,"success");
+    toast(`Imported ${added} order${added!==1?"s":""}. Push → Sheets to copy as JSON for Cowork.`,"success");
   });
 }
 if($("#importBack")) $("#importBack").addEventListener("click",()=>{ $("#importStep1").style.display="block"; $("#importStep2").style.display="none"; });
@@ -2471,7 +2495,7 @@ if($("#addOtherOrderSave")) $("#addOtherOrderSave").addEventListener("click",()=
   ["aoItemName","aoSalePrice","aoNotes"].forEach(id=>{const el=$("#"+id);if(el)el.value="";});
   if($("#aoCost")) $("#aoCost").value="0";
   renderOtherOrders(); refreshBudgets();
-  toast("Sale added. Push → Sheets to save.","success");
+  toast("Sale added. Push → Sheets to copy as JSON for Cowork.","success");
 });
 if($("#otherOrderSearch")) $("#otherOrderSearch").addEventListener("input",e=>{renderOtherOrders();});
 
@@ -2484,10 +2508,10 @@ $$(".owner-filter-btn").forEach(btn=>btn.addEventListener("click",()=>{ invFilte
 $("#orderSearch").addEventListener("input",e=>{orderFilters.search=e.target.value.toLowerCase();renderOrders();});
 $("#orderOwnerFilter").addEventListener("change",e=>{orderFilters.owner=e.target.value;renderOrders();});
 $("#orderStatusFilter").addEventListener("change",e=>{orderFilters.status=e.target.value;renderOrders();});
-$("#pushInvBtn")?.addEventListener("click",()=>pushToSheets("Inventory",STATE.inventory,STATE.invHeaders));
-$("#pushOrdersBtn")?.addEventListener("click",()=>pushToSheets("eBay Orders",STATE.orders,STATE.orderHeaders));
+$("#pushInvBtn")?.addEventListener("click",()=>pushToDataFile("inventory.json", STATE.inventory.map(toRawInventory)));
+$("#pushOrdersBtn")?.addEventListener("click",()=>pushToDataFile("orders.json", STATE.orders.map(toRawOrder)));
 $("#importOrdersBtn")?.addEventListener("click",()=>$("#importOrdersModal")?.classList.add("open"));
-$("#refreshBtn").addEventListener("click",()=>{ STATE.dirty.clear(); STATE.dirtyValues.clear(); loadFromSheets(); });
+$("#refreshBtn").addEventListener("click",()=>{ STATE.dirty.clear(); STATE.dirtyValues.clear(); loadData(); });
 
 // ============================================================================
 // Shared grading-profit math (used by Inventory expand row)
@@ -2740,70 +2764,43 @@ $("#pcPushBtn")?.addEventListener("click", () => {
   const conditionVal = $("#pcCondition").value;
   const gradeLabel = gradeVal ? `${$("#pcCompany").value} ${gradeVal}` : (conditionVal ? `Raw ${conditionVal}` : "Raw");
   const row = {
-    "Date": new Date(),
-    "Card": cardName,
-    "Set": $("#pcSet").value.trim(),
-    "Grade": gradeLabel,
-    "Price": stats.median,
-    "Comp Count": stats.count,
+    date: fmtDateInput(new Date()),
+    item: cardName,
+    set: $("#pcSet").value.trim(),
+    grade: gradeLabel,
+    price: stats.median,
+    compsUsed: stats.count,
   };
-  pushToSheets("Price History", [row], ["Date", "Card", "Set", "Grade", "Price", "Comp Count"]);
+  pushToDataFile("price-history.json", [row]);
 });
 
 // ----------------------------------------------------------------------------
-// Recent Searches — reads last 5 rows from the "Price History" sheet tab
+// Recent Searches — reads last 5 entries from data/price-history.json
 // ----------------------------------------------------------------------------
-function pcParseCsv(text) {
-  return text.trim().split("\n").map(r => {
-    const cols = []; let cur = ""; let inQ = false;
-    for (const ch of r) {
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === "," && !inQ) { cols.push(cur.trim()); cur = ""; }
-      else { cur += ch; }
-    }
-    cols.push(cur.trim());
-    return cols;
-  });
-}
-
 function pcLoadRecentSearches(force) {
   if (pcRecentLoaded && !force) return;
   pcRecentLoaded = true;
 
-  fetch(sheetUrl("Price History"))
-    .then(r => r.text())
-    .then(text => {
-      const rows = pcParseCsv(text);
-      if (rows.length < 2) return; // header only or empty — leave hidden
+  fetchJSON(DATA_URLS.priceHistory)
+    .then(entries => {
+      if (!Array.isArray(entries) || !entries.length) return; // empty — leave hidden
 
-      const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g,"").replace(/[^a-z0-9]/g,""));
-      const idx = k => headers.indexOf(k);
-      const iCard  = idx("card");
-      const iSet   = idx("set");
-      const iGrade = idx("grade");
-      const iPrice = idx("price");
-      if (iCard === -1) return;
-
-      const data = rows.slice(1).filter(r => r[iCard]).slice(-5).reverse();
+      const data = entries.filter(e => e.item).slice(-5).reverse();
       if (!data.length) return;
 
       const list = $("#pcRecentList");
       list.innerHTML = data.map((r, i) => {
-        const card  = r[iCard]  || "—";
-        const set   = iSet   >= 0 ? (r[iSet]   || "") : "";
-        const grade = iGrade >= 0 ? (r[iGrade] || "") : "";
-        const price = iPrice >= 0 ? parseFloat(r[iPrice]) : null;
-        const label = [card, price ? fmtMoney(price) : ""].filter(Boolean).join(" · ");
+        const label = [r.item, r.price ? fmtMoney(r.price) : ""].filter(Boolean).join(" · ");
         return `<button type="button" class="pc-recent-chip" data-idx="${i}" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;">${escapeHtml(label)}</button>`;
       }).join("");
 
       $$(".pc-recent-chip").forEach((btn, i) => {
         const r = data[i];
         btn.addEventListener("click", () => {
-          $("#pcName").value = iCard >= 0 ? (r[iCard] || "") : "";
+          $("#pcName").value = r.item || "";
           $("#pcCardNum").value = "";
-          $("#pcSet").value = iSet >= 0 ? (r[iSet] || "") : "";
-          const grade = iGrade >= 0 ? (r[iGrade] || "") : "";
+          $("#pcSet").value = r.set || "";
+          const grade = r.grade || "";
           const rawMatch = grade.match(/^Raw\s*(NM|LP|MP|HP)?$/i);
           if (rawMatch) {
             $("#pcGrade").value = "";
@@ -2819,13 +2816,13 @@ function pcLoadRecentSearches(force) {
 
       $("#pcRecentWrap").classList.remove("hidden");
     })
-    .catch(() => { /* Price History tab may not exist yet — fail silently, keep wrap hidden */ });
+    .catch(() => { /* price-history.json may be empty/missing — fail silently, keep wrap hidden */ });
 }
 
 // ============================================================================
 // Init
 // ============================================================================
-loadFromSheets();
+loadData();
 
 </script>
 </body>
